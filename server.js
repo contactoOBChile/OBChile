@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
-const puppeteer = require("puppeteer");
 // Si tu Node es <18, instala node-fetch y descomenta:
 // const fetch = require("node-fetch");
 
