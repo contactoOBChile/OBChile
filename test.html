@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Prueba Backend Render</title>
+</head>
+<body>
+  <h2>Formulario de prueba</h2>
+  <form id="testForm">
+    <label>RUT:</label>
+    <input type="text" id="rut" value="12.345.678-5"><br><br>
+    
+    <label>Contraseña:</label>
+    <input type="password" id="passwd" value="clave123"><br><br>
+    
+    <button type="submit">Enviar</button>
+  </form>
+
+  <div id="resultado"></div>
+
+  <script>
+    document.getElementById("testForm").addEventListener("submit", async function(e){
+      e.preventDefault();
+      const rut = document.getElementById("rut").value;
+      const passwd = document.getElementById("passwd").value;
+
+      // ⚠️ Cambia esta URL por la de tu servicio en Render
+      const backendURL = "https://login-ob.onrender.com";
+
+      try {
+        const response = await fetch(backendURL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rut, passwd })
+        });
+        const data = await response.text();
+        document.getElementById("resultado").innerText = data;
+      } catch (error) {
+        document.getElementById("resultado").innerText = "❌ Error al conectar con el servidor.";
+      }
+    });
+  </script>
+</body>
+</html>

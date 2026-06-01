@@ -1,0 +1,99 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+  background-color: #fff; /* fondo blanco por defecto */
+}
+
+/* Barra superior con logo y botón */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: white; /* fondo sólido para que logo y botón no se mezclen con la foto */
+  position: relative;
+  z-index: 10; /* asegura que quede por encima de la imagen */
+}
+
+.logo {
+  height: 40px; /* tamaño ajustado */
+}
+
+.btn-ingresar {
+  padding: 10px 25px;
+  background-color: red;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.3s ease;
+}
+
+.btn-ingresar:hover {
+  background-color: darkred;
+}
+
+/* Foto de fondo debajo del header en PC */
+.hero {
+  background: url('fondo-pc.jpg') no-repeat center center;
+  background-size: contain;   /* mantiene proporciones sin deformar */
+  background-color: #fff;     /* fondo blanco debajo de la imagen */
+  width: 100%;
+  height: calc(100vh - 70px); /* ocupa todo el espacio debajo de la barra superior */
+  position: relative;
+}
+
+/* Línea gris tenue degradada en la división */
+.hero::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 8px; /* grosor de la línea */
+  background: linear-gradient(to bottom, rgba(150,150,150,0.3), rgba(255,255,255,0));
+}
+
+/* --- Adaptación a tablets --- */
+@media (max-width: 1024px) {
+  .hero {
+    background: url('fondo-tablet.jpg') no-repeat center top;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: #fff;
+    height: calc(100vh - 70px);
+  }
+
+  .logo {
+    height: 30px;
+  }
+
+  .btn-ingresar {
+    padding: 8px 20px;
+    font-size: 14px;
+  }
+}
+
+/* --- Adaptación a móviles pequeños --- */
+@media (max-width: 480px) {
+  .hero {
+    background: url('fondo-movil.jpg') no-repeat center top;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: #fff;
+    height: calc(100vh - 60px);
+  }
+
+  .logo {
+    height: 25px;
+  }
+
+  .btn-ingresar {
+    padding: 6px 15px;
+    font-size: 12px;
+  }
+}
