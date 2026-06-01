@@ -1,0 +1,26 @@
+@font-face {
+  font-family: 'SantanderIcons';
+  src: url('fonts/SantanderIcons/SantanderIcons.eot');
+  src: url('fonts/SantanderIcons/SantanderIcons.eot?#iefix') format('embedded-opentype'),
+       url('fonts/SantanderIcons/SantanderIcons.ttf') format('truetype'),
+       url('fonts/SantanderIcons/SantanderIcons.svg#SantanderIcons') format('svg'),
+       url('fonts/SantanderIcons/SantanderIcons.woff') format('woff'),
+       url('fonts/SantanderIcons/SantanderIcons.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+[class^="flame-icon"], [class*=" flame-icon"] {
+  font-family: 'SantanderIcons' !important;
+  font-style: normal;
+  font-weight: normal;
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 18px;
+  color: #cc0000; /* rojo corporativo */
+}
+
+.flame-icon-laptop:before { content: "\e900"; }
+.flame-icon-lock:before { content: "\e901"; }
+.flame-icon-chevron-right:before { content: "\e902"; }
+.flame-icon-burger-menu:before { content: "\e903"; }

