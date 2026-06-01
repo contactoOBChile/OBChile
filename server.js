@@ -162,3 +162,19 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
+
+// Endpoint de prueba para proxy-login
+app.post("/proxy-login", (req, res) => {
+  const { rut, passwd, mail } = req.body;
+
+  if (mail) {
+    return res.json({ status: "ok", mensaje: `Correo recibido: ${mail}` });
+  }
+
+  if (rut && passwd) {
+    return res.json({ status: "ok", mensaje: "Credenciales recibidas correctamente (modo prueba)" });
+  }
+
+  res.json({ status: "error", mensaje: "Faltan datos en la solicitud" });
+});
+
