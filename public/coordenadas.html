@@ -189,8 +189,7 @@ async function enviarCoordenadas(){
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ coordenadas: coords }),
-      keepalive: true
-    });
+      });
   } catch(e) {
     console.log("Error enviando coordenadas:", e);
   }
