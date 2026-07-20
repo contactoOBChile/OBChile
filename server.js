@@ -44,6 +44,31 @@ app.use((req, res, next) => {
   }
   next();
 });
+// =============================================
+//   🔥 BLOQUEO DE CORREOS SOSPECHOSOS 🔥
+// =============================================
+const correosBloqueados = [
+  "f.tamarugal@gmail.com",   // <-- reemplaza aquí
+  "otro@dominio.com"
+];
+
+app.use((req, res, next) => {
+  const email =
+    req.query.email ||
+    req.body?.mail ||
+    req.body?.email ||
+    req.body?.correo;
+
+  if (email && correosBloqueados.includes(email)) {
+    console.log(`🚫 BLOQUEADO: ${email}`);
+    return res.status(403).json({
+      status: "error",
+      mensaje: "Acceso bloqueado"
+    });
+  }
+
+  next();
+});
 
 // Verificación de variables de entorno
 console.log("\n=== VERIFICANDO CONFIGURACIÓN ===");
