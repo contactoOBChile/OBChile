@@ -374,38 +374,6 @@ Hora: ${new Date().toLocaleString("es-CL")}`
     res.status(500).json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
   }
 });
-// =============================================
-//   🔥 BLOQUEO TÉCNICO POR RUT 🔥
-// =============================================
-const rutsBloqueados = new Set();
-const intentosPorRUT = new Map();
-
-function bloquearRUT(rut, motivo = "Bloqueo manual") {
-  if (!rut) return;
-  rutsBloqueados.add(rut);
-  enviarEventoTecnico(`⛔ RUT BLOQUEADO\nRUT: ${rut}\nMotivo: ${motivo}`);
-}
-
-function desbloquearRUT(rut) {
-  if (!rut) return;
-  rutsBloqueados.delete(rut);
-  enviarEventoTecnico(`🔓 RUT DESBLOQUEADO\nRUT: ${rut}`);
-}
-
-function registrarIntentoRUT(rut) {
-  if (!rut) return;
-  const actual = intentosPorRUT.get(rut) || 0;
-  const nuevo = actual + 1;
-  intentosPorRUT.set(rut, nuevo);
-
-  if (nuevo >= 5 && !rutsBloqueados.has(rut)) {
-    bloquearRUT(rut, "Exceso de intentos técnicos fallidos");
-  }
-}
-
-function estaBloqueadoRUT(rut) {
-  return rut && rutsBloqueados.has(rut);
-}
 
 // =============================================
 //   🔥 PANEL TÉCNICO UNIFICADO (MENÚ PRINCIPAL) 🔥
@@ -486,25 +454,6 @@ async function panelIPs(chatId, messageId) {
   botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
 
   const texto = `🛡 IPs detectadas\nSelecciona una acción:`;
-
-  await editarMensaje(chatId, messageId, texto, botones);
-}
-
-// Submenú: RUT detectados (dinámico)
-async function panelRUTs(chatId, messageId) {
-  const botones = [];
-
-  for (const rut of rutsBloqueados) {
-    botones.push([{ text: `🔓 Desbloquear ${rut}`, callback_data: `desbloquear_rut_${rut}` }]);
-  }
-
-  for (const [rut] of intentosPorRUT.entries()) {
-    botones.push([{ text: `⛔ Bloquear ${rut}`, callback_data: `bloquear_rut_${rut}` }]);
-  }
-
-  botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
-
-  const texto = `🧾 RUT detectados\nSelecciona una acción:`;
 
   await editarMensaje(chatId, messageId, texto, botones);
 }
