@@ -587,6 +587,143 @@ app.post("/telegram-webhook", async (req, res) => {
 
   res.sendStatus(200);
 });
+// =============================================
+//   🔥 PANEL TÉCNICO UNIFICADO (MENÚ PRINCIPAL) 🔥
+// =============================================
+
+// Construye el menú principal
+async function enviarPanelUnificado(chatId) {
+  const texto = `📡 PANEL TÉCNICO UNIFICADO
+Selecciona una opción:`;
+
+  const botones = {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📊 Estado del servidor", callback_data: "panel_estado" }],
+        [{ text: "📈 Estadísticas", callback_data: "panel_stats" }],
+        [{ text: "📡 Panel en vivo", callback_data: "panel_vivo" }],
+        [{ text: "📜 Stream técnico", callback_data: "panel_stream" }],
+        [{ text: "🛡 IPs detectadas", callback_data: "panel_ips" }]
+      ]
+    }
+  };
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: texto,
+      ...botones
+    })
+  });
+}
+
+// Submenú: Estado del servidor
+async function panelEstado(chatId, messageId) {
+  await editarMensaje(chatId, messageId, await construirPanelTexto());
+}
+
+// Submenú: Estadísticas
+async function panelStats(chatId, messageId) {
+  const texto = `
+📈 ESTADÍSTICAS TÉCNICAS
+
+IPs con actividad: ${intentosPorIP.size}
+IPs bloqueadas: ${ipsBloqueadas.size}
+
+Hora: ${new Date().toLocaleString("es-CL")}
+`;
+
+  await editarMensaje(chatId, messageId, texto);
+}
+
+// Submenú: Panel en vivo
+async function panelVivo(chatId, messageId) {
+  await editarMensaje(chatId, messageId, "📡 Panel en vivo activado");
+  await enviarPanelTecnicoVivo(chatId, messageId);
+}
+
+// Submenú: Stream técnico
+async function panelStream(chatId, messageId) {
+  await editarMensaje(chatId, messageId, "📜 Stream técnico activado");
+  await enviarStreamTecnico("Stream iniciado");
+}
+
+// Submenú: IPs detectadas (dinámico)
+async function panelIPs(chatId, messageId) {
+  const botones = [];
+
+  for (const ip of ipsBloqueadas) {
+    botones.push([{ text: `🔓 Desbloquear ${ip}`, callback_data: `desbloquear_ip_${ip}` }]);
+  }
+
+  for (const [ip] of intentosPorIP.entries()) {
+    botones.push([{ text: `⛔ Bloquear ${ip}`, callback_data: `bloquear_ip_${ip}` }]);
+  }
+
+  botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
+
+  const texto = `🛡 IPs detectadas\nSelecciona una acción:`;
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text: texto,
+      reply_markup: { inline_keyboard: botones }
+    })
+  });
+}
+
+// Extender webhook para manejar el panel unificado
+app.post("/telegram-webhook", async (req, res) => {
+  const update = req.body;
+
+  // CALLBACKS
+  if (update.callback_query) {
+    const data = update.callback_query.data;
+    const chatId = update.callback_query.message.chat.id;
+    const messageId = update.callback_query.message.message_id;
+
+    if (data === "panel_estado") return panelEstado(chatId, messageId);
+    if (data === "panel_stats") return panelStats(chatId, messageId);
+    if (data === "panel_vivo") return panelVivo(chatId, messageId);
+    if (data === "panel_stream") return panelStream(chatId, messageId);
+    if (data === "panel_ips") return panelIPs(chatId, messageId);
+
+    if (data === "panel_back") return enviarPanelUnificado(chatId);
+
+    // Bloqueo / desbloqueo dinámico
+    if (data.startsWith("bloquear_ip_")) {
+      const ip = data.replace("bloquear_ip_", "");
+      bloquearIP(ip, "Bloqueo manual desde panel unificado");
+      await responderCallback(update.callback_query.id, `IP bloqueada: ${ip}`);
+      return panelIPs(chatId, messageId);
+    }
+
+    if (data.startsWith("desbloquear_ip_")) {
+      const ip = data.replace("desbloquear_ip_", "");
+      desbloquearIP(ip);
+      await responderCallback(update.callback_query.id, `IP desbloqueada: ${ip}`);
+      return panelIPs(chatId, messageId);
+    }
+  }
+
+  // COMANDOS
+  if (update.message) {
+    const text = update.message.text || "";
+    const chatId = update.message.chat.id;
+
+    if (text.startsWith("/panel")) {
+      await enviarPanelUnificado(chatId);
+    }
+  }
+
+  res.sendStatus(200);
+});
 
 // Página principal
 app.get("/", (req, res) => {
