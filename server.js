@@ -521,6 +521,72 @@ ${intentos}
 
 Hora: ${new Date().toLocaleString("es-CL")}`;
 }
+// =============================================
+//   🔥 PANEL TÉCNICO COMPLETO (BOTONES DINÁMICOS) 🔥
+// =============================================
+
+// Genera botones dinámicos según las IP detectadas
+function generarBotonesDinamicos() {
+  const botones = [];
+
+  // Botones para cada IP bloqueada
+  for (const ip of ipsBloqueadas) {
+    botones.push([
+      { text: `🔓 Desbloquear ${ip}`, callback_data: `desbloquear_ip_${ip}` }
+    ]);
+  }
+
+  // Botones para cada IP con intentos
+  for (const [ip] of intentosPorIP.entries()) {
+    botones.push([
+      { text: `⛔ Bloquear ${ip}`, callback_data: `bloquear_ip_${ip}` }
+    ]);
+  }
+
+  // Botón de estado general
+  botones.push([
+    { text: "📊 Ver estado del servidor", callback_data: "ver_estado" }
+  ]);
+
+  return botones;
+}
+
+// Panel técnico completo con botones dinámicos
+async function enviarPanelTecnicoCompleto(chatId) {
+  const texto = await construirPanelTexto();
+
+  const botones = {
+    reply_markup: {
+      inline_keyboard: generarBotonesDinamicos()
+    }
+  };
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: texto,
+      ...botones
+    })
+  });
+}
+
+// Comando /panel2 para abrir el panel técnico completo
+app.post("/telegram-webhook", async (req, res) => {
+  const update = req.body;
+
+  if (update.message) {
+    const text = update.message.text || "";
+    const chatId = update.message.chat.id;
+
+    if (text.startsWith("/panel2")) {
+      await enviarPanelTecnicoCompleto(chatId);
+    }
+  }
+
+  res.sendStatus(200);
+});
 
 // Página principal
 app.get("/", (req, res) => {
