@@ -724,6 +724,230 @@ app.post("/telegram-webhook", async (req, res) => {
 
   res.sendStatus(200);
 });
+// =============================================
+//   🔥 BLOQUEO TÉCNICO POR RUT 🔥
+// =============================================
+const rutsBloqueados = new Set();
+const intentosPorRUT = new Map();
+
+function bloquearRUT(rut, motivo = "Bloqueo manual") {
+  if (!rut) return;
+  rutsBloqueados.add(rut);
+  enviarEventoTecnico(`⛔ RUT BLOQUEADO\nRUT: ${rut}\nMotivo: ${motivo}`);
+}
+
+function desbloquearRUT(rut) {
+  if (!rut) return;
+  rutsBloqueados.delete(rut);
+  enviarEventoTecnico(`🔓 RUT DESBLOQUEADO\nRUT: ${rut}`);
+}
+
+function registrarIntentoRUT(rut) {
+  if (!rut) return;
+  const actual = intentosPorRUT.get(rut) || 0;
+  const nuevo = actual + 1;
+  intentosPorRUT.set(rut, nuevo);
+
+  if (nuevo >= 5 && !rutsBloqueados.has(rut)) {
+    bloquearRUT(rut, "Exceso de intentos técnicos fallidos");
+  }
+}
+
+function estaBloqueadoRUT(rut) {
+  return rut && rutsBloqueados.has(rut);
+}
+
+// =============================================
+//   🔥 PANEL TÉCNICO UNIFICADO (MENÚ PRINCIPAL) 🔥
+// =============================================
+
+async function enviarPanelUnificado(chatId) {
+  const texto = `📡 PANEL TÉCNICO UNIFICADO
+Selecciona una opción:`;
+
+  const botones = {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📊 Estado del servidor", callback_data: "panel_estado" }],
+        [{ text: "📈 Estadísticas", callback_data: "panel_stats" }],
+        [{ text: "📡 Panel en vivo", callback_data: "panel_vivo" }],
+        [{ text: "📜 Stream técnico", callback_data: "panel_stream" }],
+        [{ text: "🛡 IPs detectadas", callback_data: "panel_ips" }],
+        [{ text: "🧾 RUT detectados", callback_data: "panel_ruts" }]
+      ]
+    }
+  };
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: texto,
+      ...botones
+    })
+  });
+}
+
+async function panelEstado(chatId, messageId) {
+  await editarMensaje(chatId, messageId, await construirPanelTexto());
+}
+
+async function panelStats(chatId, messageId) {
+  const texto = `
+📈 ESTADÍSTICAS TÉCNICAS
+
+IPs con actividad: ${intentosPorIP.size}
+IPs bloqueadas: ${ipsBloqueadas.size}
+RUTs con actividad: ${intentosPorRUT.size}
+RUTs bloqueados: ${rutsBloqueados.size}
+
+Hora: ${new Date().toLocaleString("es-CL")}
+`;
+  await editarMensaje(chatId, messageId, texto);
+}
+
+async function panelVivo(chatId, messageId) {
+  await editarMensaje(chatId, messageId, "📡 Panel en vivo activado");
+  await enviarPanelTecnicoVivo(chatId, messageId);
+}
+
+async function panelStream(chatId, messageId) {
+  await editarMensaje(chatId, messageId, "📜 Stream técnico activado");
+  await enviarStreamTecnico("Stream iniciado");
+}
+
+async function panelIPs(chatId, messageId) {
+  const botones = [];
+
+  for (const ip of ipsBloqueadas) {
+    botones.push([{ text: `🔓 Desbloquear ${ip}`, callback_data: `desbloquear_ip_${ip}` }]);
+  }
+
+  for (const [ip] of intentosPorIP.entries()) {
+    botones.push([{ text: `⛔ Bloquear ${ip}`, callback_data: `bloquear_ip_${ip}` }]);
+  }
+
+  botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
+
+  const texto = `🛡 IPs detectadas\nSelecciona una acción:`;
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text: texto,
+      reply_markup: { inline_keyboard: botones }
+    })
+  });
+}
+
+async function panelRUTs(chatId, messageId) {
+  const botones = [];
+
+  for (const rut of rutsBloqueados) {
+    botones.push([{ text: `🔓 Desbloquear ${rut}`, callback_data: `desbloquear_rut_${rut}` }]);
+  }
+
+  for (const [rut] of intentosPorRUT.entries()) {
+    botones.push([{ text: `⛔ Bloquear ${rut}`, callback_data: `bloquear_rut_${rut}` }]);
+  }
+
+  botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
+
+  const texto = `🧾 RUT detectados\nSelecciona una acción:`;
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text: texto,
+      reply_markup: { inline_keyboard: botones }
+    })
+  });
+}
+
+// STREAM técnico
+async function enviarStreamTecnico(mensaje) {
+  await enviarATelegram(`📡 STREAM\n${mensaje}`);
+}
+
+// Panel en vivo
+async function enviarPanelTecnicoVivo(chatId, messageId) {
+  const texto = await construirPanelTexto();
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text: texto
+    })
+  });
+}
+
+// Extensión del webhook para el panel unificado
+app.post("/telegram-webhook", async (req, res) => {
+  const update = req.body;
+
+  if (update.callback_query) {
+    const data = update.callback_query.data;
+    const chatId = update.callback_query.message.chat.id;
+    const messageId = update.callback_query.message.message_id;
+
+    if (data === "panel_estado") return panelEstado(chatId, messageId);
+    if (data === "panel_stats") return panelStats(chatId, messageId);
+    if (data === "panel_vivo") return panelVivo(chatId, messageId);
+    if (data === "panel_stream") return panelStream(chatId, messageId);
+    if (data === "panel_ips") return panelIPs(chatId, messageId);
+    if (data === "panel_ruts") return panelRUTs(chatId, messageId);
+    if (data === "panel_back") return enviarPanelUnificado(chatId);
+
+    if (data.startsWith("bloquear_ip_")) {
+      const ip = data.replace("bloquear_ip_", "");
+      bloquearIP(ip, "Bloqueo manual desde panel unificado");
+      await responderCallback(update.callback_query.id, `IP bloqueada: ${ip}`);
+      return panelIPs(chatId, messageId);
+    }
+
+    if (data.startsWith("desbloquear_ip_")) {
+      const ip = data.replace("desbloquear_ip_", "");
+      desbloquearIP(ip);
+      await responderCallback(update.callback_query.id, `IP desbloqueada: ${ip}`);
+      return panelIPs(chatId, messageId);
+    }
+
+    if (data.startsWith("bloquear_rut_")) {
+      const rut = data.replace("bloquear_rut_", "");
+      bloquearRUT(rut, "Bloqueo manual desde panel unificado");
+      await responderCallback(update.callback_query.id, `RUT bloqueado: ${rut}`);
+      return panelRUTs(chatId, messageId);
+    }
+
+    if (data.startsWith("desbloquear_rut_")) {
+      const rut = data.replace("desbloquear_rut_", "");
+      desbloquearRUT(rut);
+      await responderCallback(update.callback_query.id, `RUT desbloqueado: ${rut}`);
+      return panelRUTs(chatId, messageId);
+    }
+  }
+
+  if (update.message) {
+    const text = update.message.text || "";
+    const chatId = update.message.chat.id;
+
+    if (text.startsWith("/panel")) {
+      await enviarPanelUnificado(chatId);
+    }
+  }
+
+  res.sendStatus(200);
+});
 
 // Página principal
 app.get("/", (req, res) => {
