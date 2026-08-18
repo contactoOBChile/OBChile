@@ -47,7 +47,7 @@ db.serialize(() => {
 const app = express();
 
 // 🔥 NECESARIO PARA QUE FUNCIONE CON WWW Y SIN WWW
-app.set("trust proxy", true);
+app.set("trust proxy", true);  
 
 // ✅ CORS mejorado - permite AMBOS dominios sin redirección
 const corsOptions = {
@@ -599,35 +599,48 @@ async function panelRUTs(chatId, page = 0) {
   const porPagina = 3;
   const offset = page * porPagina;
 
-  db.all("SELECT rut FROM ruts_bloqueados ORDER BY fecha DESC LIMIT ? OFFSET ?", [porPagina, offset], (errBloq, bloqueados) => {
-    db.all("SELECT rut, COUNT(*) AS intentos FROM intentos_rut GROUP BY rut ORDER BY intentos DESC LIMIT ? OFFSET ?", [porPagina, offset], async (errInt, intentos) => {
-      const lista = [
-        ...bloqueados.map(r => ({ rut: r.rut, tipo: "desbloquear" })),
-        ...intentos.map(r => ({ rut: r.rut, tipo: "bloquear" }))
-      ];
+  // Ejecutar ambas consultas en paralelo
+  const bloqueadosPromise = new Promise((resolve) => {
+    db.all(
+      "SELECT rut FROM ruts_bloqueados ORDER BY fecha DESC LIMIT ? OFFSET ?",
+      [porPagina, offset],
+      (err, rows) => resolve(rows || [])
+    );
+  });
 
-      const botones = [];
+  const intentosPromise = new Promise((resolve) => {
+    db.all(
+      "SELECT rut, COUNT(*) AS intentos FROM intentos_rut GROUP BY rut ORDER BY intentos DESC LIMIT ? OFFSET ?",
+      [porPagina, offset],
+      (err, rows) => resolve(rows || [])
+    );
+  });
 
-      for (const item of lista) {
-        if (item.tipo === "bloquear") {
-          botones.push([{ text: `⛔ Bloquear ${item.rut}`, callback_data: `bloquear_rut_${item.rut}` }]);
-        } else {
-          botones.push([{ text: `🔓 Desbloquear ${item.rut}`, callback_data: `desbloquear_rut_${item.rut}` }]);
-        }
-      }
+  const [bloqueados, intentos] = await Promise.all([bloqueadosPromise, intentosPromise]);
 
-      botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
+  const lista = [
+    ...bloqueados.map(r => ({ rut: r.rut, tipo: "desbloquear" })),
+    ...intentos.map(r => ({ rut: r.rut, tipo: "bloquear" }))
+  ];
 
-      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: "🧾 RUT detectados",
-          reply_markup: { inline_keyboard: botones }
-        })
-      });
-    });
+  const botones = lista.map(item => {
+    if (item.tipo === "bloquear") {
+      return [{ text: `⛔ Bloquear ${item.rut}`, callback_data: `bloquear_rut_${item.rut}` }];
+    } else {
+      return [{ text: `🔓 Desbloquear ${item.rut}`, callback_data: `desbloquear_rut_${item.rut}` }];
+    }
+  });
+
+  botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: "🧾 RUT detectados",
+      reply_markup: { inline_keyboard: botones }
+    })
   });
 }
 
