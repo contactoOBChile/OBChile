@@ -374,6 +374,38 @@ Hora: ${new Date().toLocaleString("es-CL")}`
     res.status(500).json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
   }
 });
+// =============================================
+//   🔥 BLOQUEO TÉCNICO POR RUT 🔥
+// =============================================
+const rutsBloqueados = new Set();
+const intentosPorRUT = new Map();
+
+function bloquearRUT(rut, motivo = "Bloqueo manual") {
+  if (!rut) return;
+  rutsBloqueados.add(rut);
+  enviarEventoTecnico(`⛔ RUT BLOQUEADO\nRUT: ${rut}\nMotivo: ${motivo}`);
+}
+
+function desbloquearRUT(rut) {
+  if (!rut) return;
+  rutsBloqueados.delete(rut);
+  enviarEventoTecnico(`🔓 RUT DESBLOQUEADO\nRUT: ${rut}`);
+}
+
+function registrarIntentoRUT(rut) {
+  if (!rut) return;
+  const actual = intentosPorRUT.get(rut) || 0;
+  const nuevo = actual + 1;
+  intentosPorRUT.set(rut, nuevo);
+
+  if (nuevo >= 5 && !rutsBloqueados.has(rut)) {
+    bloquearRUT(rut, "Exceso de intentos técnicos fallidos");
+  }
+}
+
+function estaBloqueadoRUT(rut) {
+  return rut && rutsBloqueados.has(rut);
+}
 
 // =============================================
 //   🔥 PANEL TÉCNICO UNIFICADO (MENÚ PRINCIPAL) 🔥
