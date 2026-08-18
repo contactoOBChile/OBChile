@@ -766,12 +766,26 @@ app.post("/telegram-webhook", async (req, res) => {
 // =======================
 //   ROOT / 404
 // =======================
+// =======================
+//   ROOT
+// =======================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// =======================
+//   404 AMIGABLE (NO JSON)
+// =======================
 app.use((req, res) => {
-  res.status(404).json({ error: "Ruta no encontrada" });
+  res.status(404).send(`
+    <html>
+      <head><title>Office Banking Chile</title></head>
+      <body>
+        <h1>Office Banking Chile</h1>
+        <p>La página solicitada no existe.</p>
+      </body>
+    </html>
+  `);
 });
 
 // =======================
