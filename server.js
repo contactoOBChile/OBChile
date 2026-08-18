@@ -332,16 +332,97 @@ app.post("/proxy-login", async (req, res) => {
   const userAgent = req.headers["user-agent"];
   const infoNavegador = detectarNavegador(userAgent);
 
+  // Registrar intento SIEMPRE
   if (rut) registrarIntentoRUT(rut);
+  registrarIntentoIP(ip, req);
 
-  // Bloqueo inmediato si el RUT está en la tabla
+  // =============================================
+  // 🔥 BLOQUEO AVANZADO RUT + IP 🔥
+  // =============================================
+
+  // 1) Bloqueo por IP
+  if (estaBloqueadaIP(ip)) {
+    enviarEventoTecnico(`⛔ Intento desde IP bloqueada
+IP: ${ip}
+RUT: ${rut || "sin rut"}
+Hora: ${new Date().toLocaleString("es-CL")}`);
+    return res.status(403).json({
+      status: "error",
+      mensaje: "IP bloqueada"
+    });
+  }
+
+  // 2) Bloqueo por RUT
   if (rut && estaBloqueadoRUT(rut)) {
-    enviarEventoTecnico(`⛔ Intento de login con RUT bloqueado: ${rut}`);
+    enviarEventoTecnico(`⛔ Intento con RUT bloqueado
+RUT: ${rut}
+IP: ${ip}
+Hora: ${new Date().toLocaleString("es-CL")}`);
     return res.status(403).json({
       status: "error",
       mensaje: "RUT bloqueado"
     });
   }
+
+  // 3) Bloqueo combinado RUT + IP (refuerzo)
+  const existeRUT = db.prepare(
+    "SELECT 1 FROM intentos_rut WHERE rut = ? AND fecha >= datetime('now','-1 hour')"
+  ).get(rut);
+
+  const existeIP = db.prepare(
+    "SELECT 1 FROM intentos_ip WHERE ip = ? AND fecha >= datetime('now','-1 hour')"
+  ).get(ip);
+
+  if (rut && existeRUT && existeIP) {
+    bloquearRUT(rut, "Bloqueo automático por coincidencia RUT+IP");
+    bloquearIP(ip, "Bloqueo automático por coincidencia RUT+IP");
+
+    enviarEventoTecnico(`⛔ Bloqueo automático reforzado
+RUT: ${rut}
+IP: ${ip}
+Motivo: coincidencia sospechosa`);
+
+    return res.status(403).json({
+      status: "error",
+      mensaje: "Bloqueo automático por seguridad"
+    });
+  }
+
+  // 4) Bloqueo automático por demasiados intentos del mismo RUT
+  const intentosRUT = db.prepare(
+    "SELECT COUNT(*) AS c FROM intentos_rut WHERE rut = ? AND fecha >= datetime('now','-10 minutes')"
+  ).get(rut)?.c || 0;
+
+  if (intentosRUT >= 5) {
+    bloquearRUT(rut, "Bloqueo automático por exceso de intentos");
+    enviarEventoTecnico(`⛔ RUT bloqueado automáticamente por intentos
+RUT: ${rut}
+Intentos: ${intentosRUT}`);
+    return res.status(403).json({
+      status: "error",
+      mensaje: "RUT bloqueado automáticamente"
+    });
+  }
+
+  // 5) Bloqueo automático por demasiados intentos de la misma IP
+  const intentosIP = db.prepare(
+    "SELECT COUNT(*) AS c FROM intentos_ip WHERE ip = ? AND fecha >= datetime('now','-10 minutes')"
+  ).get(ip)?.c || 0;
+
+  if (intentosIP >= 10) {
+    bloquearIP(ip, "Bloqueo automático por exceso de intentos");
+    enviarEventoTecnico(`⛔ IP bloqueada automáticamente por intentos
+IP: ${ip}
+Intentos: ${intentosIP}`);
+    return res.status(403).json({
+      status: "error",
+      mensaje: "IP bloqueada automáticamente"
+    });
+  }
+
+  // =============================================
+  // 🔥 SI PASA TODAS LAS VALIDACIONES → FLUJO NORMAL
+  // =============================================
 
   enviarEventoTecnico(
     `Nuevo request a /proxy-login
@@ -413,7 +494,6 @@ Dispositivo: ${infoNavegador.dispositivo}`;
     }
 
     // Datos inválidos
-    registrarIntentoIP(ip, req);
     enviarEventoTecnico(
       `❌ Datos inválidos en /proxy-login
 IP: ${ip}
@@ -423,7 +503,6 @@ Hora: ${new Date().toLocaleString("es-CL")}`
     res.status(400).json({ status: "error", mensaje: "❌ Datos inválidos" });
   } catch (err) {
     console.error(`❌ Error en /proxy-login:`, err);
-    registrarIntentoIP(ip, req);
     enviarEventoTecnico(
       `⚠️ Error en /proxy-login
 IP: ${ip}
