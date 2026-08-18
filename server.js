@@ -320,6 +320,9 @@ app.post("/proxy-login", async (req, res) => {
   const userAgent = req.headers["user-agent"];
   const infoNavegador = detectarNavegador(userAgent);
 
+  // 🔥 Registrar intento SIEMPRE
+  if (rut) registrarIntentoRUT(rut);
+
   // 🔥 Verificar si el RUT está bloqueado
   if (rut) {
     return estaBloqueadoRUT(rut, bloqueado => {
@@ -337,8 +340,6 @@ app.post("/proxy-login", async (req, res) => {
   }
 
   async function procesarLogin() {
-    if (rut) registrarIntentoRUT(rut);
-
     enviarEventoTecnico(
       `Nuevo request a /proxy-login
 IP: ${ip}
