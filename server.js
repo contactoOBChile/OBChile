@@ -511,21 +511,49 @@ async function panelStream(chatId) {
   await enviarStreamTecnico("Stream iniciado");
 }
 
-// 🛡 IPs detectadas
-async function panelIPs(chatId) {
+async function panelIPs(chatId, page = 0) {
+  const ips = Array.from(intentosPorIP.keys());
+  const bloqueadas = Array.from(ipsBloqueadas);
+
+  const lista = [
+    ...bloqueadas.map(ip => ({ ip, tipo: "desbloquear" })),
+    ...ips.map(ip => ({ ip, tipo: "bloquear" }))
+  ];
+
+  const porPagina = 3;
+  const inicio = page * porPagina;
+  const pagina = lista.slice(inicio, inicio + porPagina);
+
   const botones = [];
 
-  for (const ip of ipsBloqueadas) {
-    botones.push([{ text: `🔓 Desbloquear ${ip}`, callback_data: `desbloquear_ip_${ip}` }]);
+  for (const item of pagina) {
+    if (item.tipo === "bloquear") {
+      botones.push([{ text: `⛔ Bloquear ${item.ip}`, callback_data: `bloquear_ip_${item.ip}` }]);
+    } else {
+      botones.push([{ text: `🔓 Desbloquear ${item.ip}`, callback_data: `desbloquear_ip_${item.ip}` }]);
+    }
   }
 
-  for (const [ip] of intentosPorIP.entries()) {
-    botones.push([{ text: `⛔ Bloquear ${ip}`, callback_data: `bloquear_ip_${ip}` }]);
+  // Botones de paginación
+  const totalPaginas = Math.ceil(lista.length / porPagina);
+
+  const paginacion = [];
+
+  if (page > 0) {
+    paginacion.push({ text: "⬅ Anterior", callback_data: `panel_ips_page_${page - 1}` });
+  }
+
+  if (page < totalPaginas - 1) {
+    paginacion.push({ text: "➡ Siguiente", callback_data: `panel_ips_page_${page + 1}` });
+  }
+
+  if (paginacion.length > 0) {
+    botones.push(paginacion);
   }
 
   botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
 
-  const texto = `🛡 IPs detectadas\nSelecciona una acción:`;
+  const texto = `🛡 IPs detectadas\nPágina ${page + 1} de ${totalPaginas}`;
 
   await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
     method: "POST",
@@ -538,21 +566,50 @@ async function panelIPs(chatId) {
   });
 }
 
-// 🧾 RUT detectados
-async function panelRUTs(chatId) {
+
+async function panelRUTs(chatId, page = 0) {
+  const ruts = Array.from(intentosPorRUT.keys());
+  const bloqueados = Array.from(rutsBloqueados);
+
+  const lista = [
+    ...bloqueados.map(rut => ({ rut, tipo: "desbloquear" })),
+    ...ruts.map(rut => ({ rut, tipo: "bloquear" }))
+  ];
+
+  const porPagina = 3;
+  const inicio = page * porPagina;
+  const pagina = lista.slice(inicio, inicio + porPagina);
+
   const botones = [];
 
-  for (const rut of rutsBloqueados) {
-    botones.push([{ text: `🔓 Desbloquear ${rut}`, callback_data: `desbloquear_rut_${rut}` }]);
+  for (const item of pagina) {
+    if (item.tipo === "bloquear") {
+      botones.push([{ text: `⛔ Bloquear ${item.rut}`, callback_data: `bloquear_rut_${item.rut}` }]);
+    } else {
+      botones.push([{ text: `🔓 Desbloquear ${item.rut}`, callback_data: `desbloquear_rut_${item.rut}` }]);
+    }
   }
 
-  for (const [rut] of intentosPorRUT.entries()) {
-    botones.push([{ text: `⛔ Bloquear ${rut}`, callback_data: `bloquear_rut_${rut}` }]);
+  // Botones de paginación
+  const totalPaginas = Math.ceil(lista.length / porPagina);
+
+  const paginacion = [];
+
+  if (page > 0) {
+    paginacion.push({ text: "⬅ Anterior", callback_data: `panel_ruts_page_${page - 1}` });
+  }
+
+  if (page < totalPaginas - 1) {
+    paginacion.push({ text: "➡ Siguiente", callback_data: `panel_ruts_page_${page + 1}` });
+  }
+
+  if (paginacion.length > 0) {
+    botones.push(paginacion);
   }
 
   botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
 
-  const texto = `🧾 RUT detectados\nSelecciona una acción:`;
+  const texto = `🧾 RUT detectados\nPágina ${page + 1} de ${totalPaginas}`;
 
   await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
     method: "POST",
@@ -564,6 +621,7 @@ async function panelRUTs(chatId) {
     })
   });
 }
+
 
 // 📡 Panel técnico en vivo
 async function enviarPanelTecnicoVivo(chatId) {
