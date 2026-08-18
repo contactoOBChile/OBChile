@@ -9,6 +9,14 @@ const db = new Database("panel.db");
 // =======================
 //   TABLAS SQLITE
 // =======================
+db.prepare(`CREATE TABLE IF NOT EXISTS tracking_clicks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  rut TEXT,
+  ip TEXT,
+  user_agent TEXT,
+  fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+)`).run();
+
 db.prepare(`CREATE TABLE IF NOT EXISTS ips_bloqueadas (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   ip TEXT NOT NULL,
@@ -610,6 +618,7 @@ async function panelRUTs(chatId, page = 0) {
   ).all(porPagina, offset);
 
   const lista = [
+
     ...bloqueados.map(r => ({ rut: r.rut, tipo: "desbloquear" })),
     ...intentos.map(r => ({ rut: r.rut, tipo: "bloquear" }))
   ];
@@ -698,19 +707,51 @@ app.post("/telegram-webhook", async (req, res) => {
       await responderCallback(update.callback_query.id, `RUT desbloqueado: ${rut}`);
       await panelRUTs(chatId);
     }
-
     return res.sendStatus(200);
   }
+if (update.message) {
+  const text = update.message.text || "";
+  const chatId = update.message.chat.id;
 
-  if (update.message) {
-    const text = update.message.text || "";
-    const chatId = update.message.chat.id;
+  if (text.startsWith("/panel")) {
+    await enviarPanelUnificado(chatId);
+  }
+  // =======================
+  //   INFORME COMPLETO POR RUT
+  // =======================
+  if (text.startsWith("/informe")) {
+    const rut = text.replace("/informe ", "").trim();
 
-    if (text.startsWith("/panel")) {
-      await enviarPanelUnificado(chatId);
-    }
+    const ingresos = db.prepare(`
+      SELECT fecha FROM intentos_rut
+      WHERE rut = ?
+      ORDER BY fecha DESC
+      LIMIT 20
+    `).all(rut);
+
+    const clics = db.prepare(`
+      SELECT fecha, ip FROM tracking_clicks
+      WHERE rut = ?
+      ORDER BY fecha DESC
+      LIMIT 20
+    `).all(rut);
+
+    let mensaje = `📄 INFORME COMPLETO\nRUT: ${rut}\n\n`;
+
+    mensaje += `🔐 Últimos ingresos (${ingresos.length})\n`;
+    ingresos.forEach(r => {
+      mensaje += `• ${r.fecha}\n`;
+    });
+
+    mensaje += `\n🔎 Últimos clics (${clics.length})\n`;
+    clics.forEach(c => {
+      mensaje += `• ${c.fecha} — IP ${c.ip}\n`;
+    });
+
+    await enviarATelegram(mensaje);
   }
 
+ 
   res.sendStatus(200);
 });
 
