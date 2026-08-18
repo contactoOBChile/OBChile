@@ -457,6 +457,36 @@ async function panelIPs(chatId, messageId) {
 
   await editarMensaje(chatId, messageId, texto, botones);
 }
+// Submenú: RUT detectados (dinámico)
+async function panelRUTs(chatId, messageId) {
+  const botones = [];
+
+  // Botones para RUT bloqueados
+  for (const rut of rutsBloqueados) {
+    botones.push([{ text: `🔓 Desbloquear ${rut}`, callback_data: `desbloquear_rut_${rut}` }]);
+  }
+
+  // Botones para RUT detectados con intentos
+  for (const [rut] of intentosPorRUT.entries()) {
+    botones.push([{ text: `⛔ Bloquear ${rut}`, callback_data: `bloquear_rut_${rut}` }]);
+  }
+
+  // Botón para volver al menú
+  botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
+
+  const texto = `🧾 RUT detectados\nSelecciona una acción:`;
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text: texto,
+      reply_markup: { inline_keyboard: botones }
+    })
+  });
+}
 
 // STREAM técnico
 async function enviarStreamTecnico(mensaje) {
