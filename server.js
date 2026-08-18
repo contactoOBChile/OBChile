@@ -3,8 +3,8 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 
-const sqlite3 = require("sqlite3").verbose();
-const db = new sqlite3.Database("panel.db");
+const Database = require("better-sqlite3");
+const db = new Database("panel.db");
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS ips_bloqueadas (
