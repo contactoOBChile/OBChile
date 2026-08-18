@@ -414,9 +414,10 @@ function estaBloqueadoRUT(rut) {
 }
 
 // =============================================
-//   🔥 PANEL TÉCNICO UNIFICADO (MENÚ PRINCIPAL) 🔥
+//   🔥 PANEL TÉCNICO UNIFICADO (VERSIÓN RÁPIDA) 🔥
 // =============================================
 
+// 📡 Menú principal
 async function enviarPanelUnificado(chatId) {
   const texto = `📡 PANEL TÉCNICO UNIFICADO
 Selecciona una opción:`;
@@ -445,13 +446,22 @@ Selecciona una opción:`;
   });
 }
 
-// Submenú: Estado del servidor
-async function panelEstado(chatId, messageId) {
-  await editarMensaje(chatId, messageId, await construirPanelTexto());
+// 📊 Estado del servidor
+async function panelEstado(chatId) {
+  const texto = await construirPanelTexto();
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: texto
+    })
+  });
 }
 
-// Submenú: Estadísticas
-async function panelStats(chatId, messageId) {
+// 📈 Estadísticas
+async function panelStats(chatId) {
   const texto = `
 📈 ESTADÍSTICAS TÉCNICAS
 
@@ -462,23 +472,47 @@ RUTs bloqueados: ${rutsBloqueados.size}
 
 Hora: ${new Date().toLocaleString("es-CL")}
 `;
-  await editarMensaje(chatId, messageId, texto);
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: texto
+    })
+  });
 }
 
-// Submenú: Panel en vivo
-async function panelVivo(chatId, messageId) {
-  await editarMensaje(chatId, messageId, "📡 Panel en vivo activado");
-  await enviarPanelTecnicoVivo(chatId, messageId);
+// 📡 Panel en vivo
+async function panelVivo(chatId) {
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: "📡 Panel en vivo activado"
+    })
+  });
+
+  await enviarPanelTecnicoVivo(chatId);
 }
 
-// Submenú: Stream técnico
-async function panelStream(chatId, messageId) {
-  await editarMensaje(chatId, messageId, "📜 Stream técnico activado");
+// 📜 Stream técnico
+async function panelStream(chatId) {
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: "📜 Stream técnico activado"
+    })
+  });
+
   await enviarStreamTecnico("Stream iniciado");
 }
 
-// Submenú: IPs detectadas (dinámico)
-async function panelIPs(chatId, messageId) {
+// 🛡 IPs detectadas
+async function panelIPs(chatId) {
   const botones = [];
 
   for (const ip of ipsBloqueadas) {
@@ -493,62 +527,58 @@ async function panelIPs(chatId, messageId) {
 
   const texto = `🛡 IPs detectadas\nSelecciona una acción:`;
 
-  await editarMensaje(chatId, messageId, texto, botones);
-}
-// Submenú: RUT detectados (dinámico)
-async function panelRUTs(chatId, messageId) {
-  const botones = [];
-
-  // Botones para RUT bloqueados
-  for (const rut of rutsBloqueados) {
-    botones.push([{ text: `🔓 Desbloquear ${rut}`, callback_data: `desbloquear_rut_${rut}` }]);
-  }
-
-  // Botones para RUT detectados con intentos
-  for (const [rut] of intentosPorRUT.entries()) {
-    botones.push([{ text: `⛔ Bloquear ${rut}`, callback_data: `bloquear_rut_${rut}` }]);
-  }
-
-  // Botón para volver al menú
-  botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
-
-  const texto = `🧾 RUT detectados\nSelecciona una acción:`;
-
-  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/editMessageText`, {
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       chat_id: chatId,
-      message_id: messageId,
       text: texto,
       reply_markup: { inline_keyboard: botones }
     })
   });
 }
 
-// STREAM técnico
-async function enviarStreamTecnico(mensaje) {
-  await enviarATelegram(`📡 STREAM\n${mensaje}`);
-}
+// 🧾 RUT detectados
+async function panelRUTs(chatId) {
+  const botones = [];
 
-// Panel en vivo
-async function enviarPanelTecnicoVivo(chatId, messageId) {
-  const texto = await construirPanelTexto();
+  for (const rut of rutsBloqueados) {
+    botones.push([{ text: `🔓 Desbloquear ${rut}`, callback_data: `desbloquear_rut_${rut}` }]);
+  }
 
-  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/editMessageText`, {
+  for (const [rut] of intentosPorRUT.entries()) {
+    botones.push([{ text: `⛔ Bloquear ${rut}`, callback_data: `bloquear_rut_${rut}` }]);
+  }
+
+  botones.push([{ text: "⬅ Volver al menú", callback_data: "panel_back" }]);
+
+  const texto = `🧾 RUT detectados\nSelecciona una acción:`;
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       chat_id: chatId,
-      message_id: messageId,
+      text: texto,
+      reply_markup: { inline_keyboard: botones }
+    })
+  });
+}
+
+// 📡 Panel técnico en vivo
+async function enviarPanelTecnicoVivo(chatId) {
+  const texto = await construirPanelTexto();
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
       text: texto
     })
   });
 }
 
-// =============================================
-//   🔥 WEBHOOK EXTENDIDO PARA PANEL UNIFICADO 🔥
-// =============================================
 
 app.post("/telegram-webhook", async (req, res) => {
   const update = req.body;
@@ -556,14 +586,13 @@ app.post("/telegram-webhook", async (req, res) => {
   if (update.callback_query) {
     const data = update.callback_query.data;
     const chatId = update.callback_query.message.chat.id;
-    const messageId = update.callback_query.message.message_id;
 
-    if (data === "panel_estado") return panelEstado(chatId, messageId);
-    if (data === "panel_stats") return panelStats(chatId, messageId);
-    if (data === "panel_vivo") return panelVivo(chatId, messageId);
-    if (data === "panel_stream") return panelStream(chatId, messageId);
-    if (data === "panel_ips") return panelIPs(chatId, messageId);
-    if (data === "panel_ruts") return panelRUTs(chatId, messageId);
+    if (data === "panel_estado") return panelEstado(chatId);
+    if (data === "panel_stats") return panelStats(chatId);
+    if (data === "panel_vivo") return panelVivo(chatId);
+    if (data === "panel_stream") return panelStream(chatId);
+    if (data === "panel_ips") return panelIPs(chatId);
+    if (data === "panel_ruts") return panelRUTs(chatId);
     if (data === "panel_back") return enviarPanelUnificado(chatId);
 
     // Bloqueo / desbloqueo dinámico de IP
@@ -571,14 +600,14 @@ app.post("/telegram-webhook", async (req, res) => {
       const ip = data.replace("bloquear_ip_", "");
       bloquearIP(ip, "Bloqueo manual desde panel unificado");
       await responderCallback(update.callback_query.id, `IP bloqueada: ${ip}`);
-      return panelIPs(chatId, messageId);
+      return panelIPs(chatId);
     }
 
     if (data.startsWith("desbloquear_ip_")) {
       const ip = data.replace("desbloquear_ip_", "");
       desbloquearIP(ip);
       await responderCallback(update.callback_query.id, `IP desbloqueada: ${ip}`);
-      return panelIPs(chatId, messageId);
+      return panelIPs(chatId);
     }
 
     // Bloqueo / desbloqueo dinámico de RUT
@@ -586,14 +615,14 @@ app.post("/telegram-webhook", async (req, res) => {
       const rut = data.replace("bloquear_rut_", "");
       bloquearRUT(rut, "Bloqueo manual desde panel unificado");
       await responderCallback(update.callback_query.id, `RUT bloqueado: ${rut}`);
-      return panelRUTs(chatId, messageId);
+      return panelRUTs(chatId);
     }
 
     if (data.startsWith("desbloquear_rut_")) {
       const rut = data.replace("desbloquear_rut_", "");
       desbloquearRUT(rut);
       await responderCallback(update.callback_query.id, `RUT desbloqueado: ${rut}`);
-      return panelRUTs(chatId, messageId);
+      return panelRUTs(chatId);
     }
   }
 
